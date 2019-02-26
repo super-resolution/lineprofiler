@@ -1,0 +1,12 @@
+
+__pycache__/
+.idea/
+TemplateFiles/
+data/
+data_empty/
+data_first_try/
+build/
+dist/
+setup.py
+*.ini
+
