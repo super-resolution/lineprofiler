@@ -13,6 +13,8 @@ class QProcessThread(QThread):
     done = pyqtSignal()
     def __init__(self, parent=None):
         super(QProcessThread, self).__init__(parent)
+        self.upper_lim = 800
+        self.lower_lim = 400
 
 
     def set_data(self, image_stack, px_size):
@@ -164,7 +166,7 @@ class QProcessThread(QThread):
                 profile_blue = self._line_profile(self.current_image_blue, start, end)
             start,distance = self._calc_distance(profile)
             start = (start-55*self.sampling).astype(np.int32)
-            if start <0 or distance <400 or distance>800:
+            if start <0 or distance <self.lower_lim or distance>self.upper_lim:
                 continue
             self.distances.append(distance)
             profile = np.delete(profile, [range(start)], 0)[0:110*self.sampling]
@@ -202,7 +204,7 @@ class QProcessThread(QThread):
         tifffile.imwrite(os.getcwd()+r'\data\profiles.tif', np.asarray(self.images_RGB).astype(np.uint16), photometric='rgb')
         distanc = np.asarray(self.distances)
         np.savetxt(os.getcwd()+r"\data\distances.txt",distanc)
-        histogram = np.histogram(self.distances, bins=np.linspace(400,800,41),)
+        histogram = np.histogram(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1),)
         hist = np.zeros((40,3))
         for i in range(40):
             hist[i,0] = histogram[0][i]
@@ -210,7 +212,7 @@ class QProcessThread(QThread):
             hist[i,1] = histogram[1][i+1]
 
         np.savetxt(os.getcwd() + r"\data\distances_histogram.txt",hist.astype(np.int16))
-        plt.hist(self.distances, bins=np.linspace(400,800,40))
+        plt.hist(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1))
         plt.show()
         print("mean distance is:",np.mean(distanc))
         print("ste is:", np.std(distanc)/np.sqrt(len(distanc)))
