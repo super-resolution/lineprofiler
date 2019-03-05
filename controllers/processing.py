@@ -6,15 +6,23 @@ from PyQt5.QtCore import QThread,pyqtSignal
 import numba
 import tifffile
 import os
-import time
+
 
 class QProcessThread(QThread):
+    """
+    Processing thread to compute distances between SNCs in a given SIM image.
+    Extending the QThread class keeps the GUI running while the evaluation runs in the background.
+    """
     sig = pyqtSignal(int)
     done = pyqtSignal()
     def __init__(self, parent=None):
         super(QProcessThread, self).__init__(parent)
         self.upper_lim = 800
         self.lower_lim = 400
+        self.blur = 5
+        self._distance_transform_th = 0.4#0.85
+        self.intensity_threshold = 30
+
 
 
     def set_data(self, image_stack, px_size):
@@ -29,10 +37,13 @@ class QProcessThread(QThread):
         self.distances = []
         self.images_RGB = []
         self.sampling = 10
-        self.intensity_threshold = 1
 
 
     def set_image(self, slice):
+        """
+        Set current image
+        :param slice: z-slice of the hyperstack
+        """
         self.current_image = self.image_stack[0,slice]
         self.image = np.clip(self.image_stack[0,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
         self.current_image_green = self.image_stack[1,slice]
@@ -46,13 +57,15 @@ class QProcessThread(QThread):
         self.candidate_indices = np.zeros((1))
         self.image_RGB = cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGB)
         #intensity threshold to be accepted by profiler
-        self._distance_transform_th = 0.4#0.85
         self._init_distance_transform()
         self.gradient_image()
 
     def _init_distance_transform(self):
+        """
+        Create distance transform of closed shapes in the current self.image
+        """
         image = self.image
-        image = cv2.blur(image, (5, 5))
+        image = cv2.blur(image, (self.blur, self.blur))
 
         # canny and gradient images
         self.image_canny = cv2.Canny(image, 150, 220)
@@ -66,14 +79,16 @@ class QProcessThread(QThread):
         mask = np.zeros((self.image.shape[0]+2, self.image.shape[1]+2), np.uint8)
         cv2.floodFill(im_floodfill, mask, (0, 0), 255)
         cv2.floodFill(im_floodfill, mask, (self.image.shape[1]-1,self.image.shape[0]-1), 255)
+        cv2.floodFill(im_floodfill, mask, (0,self.image.shape[0]-1), 255)
+        cv2.floodFill(im_floodfill, mask, (self.image.shape[1]-1,0), 255)
 
         self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
         cv2.imshow("asdf",self.im_floodfill_inv)
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
 
     def gradient_image(self):
         image = self.image
-        image = cv2.blur(image, (5, 5))
+        image = cv2.blur(image, (self.blur, self.blur))
         X = cv2.Sobel(image.astype(np.float64), cv2.CV_64F, 1, 0, ksize=9)
         Y = cv2.Sobel(image.astype(np.float64), cv2.CV_64F, 0, 1, ksize=9)
         self.grad_image = np.arctan2(X,Y)
@@ -131,6 +146,11 @@ class QProcessThread(QThread):
                                 canny_candidates[i - maximum + k, j - maximum+l] = 1
 
     def _calc_distance(self, profile):
+        """
+        Calc distances between peek maximas
+        :param profile:
+        :return: middle point of the peaks, peak distance
+        """
         split1 = profile[:90*self.sampling]
         split2 = profile[90*self.sampling:]
         distance= (split2.argmax() + 90*self.sampling) - split1.argmax()
@@ -139,7 +159,10 @@ class QProcessThread(QThread):
 
 
     def show_profiles(self):
-
+        """
+        create and align line profiles of candidate indices
+        :return: line profiles and their position in a RGB image
+        """
         for i in range(self.candidate_indices.shape[1]):
             if self._use_green:
                 k, l = self.candidate_indices_green[0, i], self.candidate_indices_green[1, i]
@@ -155,13 +178,7 @@ class QProcessThread(QThread):
             end = [k + 2 * x_i, l + 2 * y_i]
             num = np.sqrt(x_i ** 2 + y_i ** 2)
             profile = self._line_profile(self.current_image, start, end)
-            #if profile.max() < 6000:
-            #    print("to low profile")
-            #    continue
             profile_green = self._line_profile(self.current_image_green, start, end)
-            #if profile_green.max() < 6000:
-            #    print("to low profile green")
-            #    continue
             if not self.two_channel:
                 profile_blue = self._line_profile(self.current_image_blue, start, end)
             start,distance = self._calc_distance(profile)

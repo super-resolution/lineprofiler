@@ -38,8 +38,9 @@ class MainWindow(Ui_MainWindow):
                 lambda: (self.interface.current_processing_thread.start(),
             self.status_bar.showMessage("Line Profiler profiling lines"),
             self.pushButton_process.setEnabled(False))
-
         )
+        self.spinBox_gaussian_blur.valueChanged.connect(self.interface.set_process_blur)
+
         self.horizontalSlider_intensity_threshold.valueChanged.connect(
             lambda state, item=self.horizontalSlider_intensity_threshold,: self.interface.slider_threshold_changed( item.value())
         )

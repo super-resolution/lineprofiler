@@ -1,6 +1,7 @@
 
 from controllers.display import *
 from controllers.processing import *
+from PyQt5 import QtCore
 
 class interface():
     def __init__(self, main_window):
@@ -13,6 +14,22 @@ class interface():
 
     def set_channel_color(self):
         a=0
+
+    #@QtCore.pyqtSlot(float)
+    def set_process_distance_th(self, value):
+        self.current_processing_thread.distance_transform_th = value
+
+    #@QtCore.pyqtSlot(int)
+    def set_process_blur(self, value):
+        self.current_processing_thread.blur = value
+
+    #@QtCore.pyqtSlot(int)
+    def set_process_lower_lim(self, value):
+        self.current_processing_thread.lower_lim = value
+
+    #@QtCore.pyqtSlot(int)
+    def set_process_upper_lim(self, value):
+        self.current_processing_thread.upper_lim = value
 
     def set_channel_visible(self, i, enabled):
         self.current_image.channel = (i,enabled)
