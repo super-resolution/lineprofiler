@@ -40,6 +40,11 @@ class MainWindow(Ui_MainWindow):
             self.pushButton_process.setEnabled(False))
         )
         self.spinBox_gaussian_blur.valueChanged.connect(self.interface.set_process_blur)
+        self.doubleSpinBox_distance_threshold.valueChanged.connect(self.interface.set_process_distance_th)
+
+        self.spinBox_lower_limit.valueChanged.connect(self.interface.set_process_lower_lim)
+        self.spinBox_upper_limit.valueChanged.connect(self.interface.set_process_upper_lim)
+
 
         self.horizontalSlider_intensity_threshold.valueChanged.connect(
             lambda state, item=self.horizontalSlider_intensity_threshold,: self.interface.slider_threshold_changed( item.value())

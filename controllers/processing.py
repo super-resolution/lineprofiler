@@ -222,15 +222,21 @@ class QProcessThread(QThread):
         distanc = np.asarray(self.distances)
         np.savetxt(os.getcwd()+r"\data\distances.txt",distanc)
         histogram = np.histogram(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1),)
-        hist = np.zeros((40,3))
-        for i in range(40):
+        z = int((self.upper_lim-self.lower_lim)/10)
+        hist = np.zeros((z,3))
+        for i in range(hist.shape[0]):
             hist[i,0] = histogram[0][i]
             hist[i,1] = histogram[1][i]
             hist[i,1] = histogram[1][i+1]
 
         np.savetxt(os.getcwd() + r"\data\distances_histogram.txt",hist.astype(np.int16))
         plt.hist(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1))
+        plt.savefig(r'data\Histogram.png')
+        #plt.suptitle('Histogram', fontsize=16)
         plt.show()
+        file = open(r"data\results.txt", "w")
+        file.write("mean distance is: "+ str(np.mean(distanc))+ "\nste is: "+ str(np.std(distanc)/np.sqrt(len(distanc))))
+        file.close()
         print("mean distance is:",np.mean(distanc))
         print("ste is:", np.std(distanc)/np.sqrt(len(distanc)))
         red = np.array(self.profiles)
@@ -253,6 +259,7 @@ class QProcessThread(QThread):
             all_profiles_normed = np.swapaxes(np.array([red_mean/np.linalg.norm(red_mean), green_mean/np.linalg.norm(green_mean),]),0,1)
         np.savetxt(os.getcwd()+r"\data\mean_line_profiles.txt",all_profiles)
         np.savetxt(os.getcwd()+r"\data\mean_line_profiles_normed.txt",all_profiles_normed)
+        plt.savefig(r'data\Profiles.png')
         plt.show()
 
     @property
@@ -261,4 +268,4 @@ class QProcessThread(QThread):
 
     @distance_transform_th.setter
     def distance_transform_th(self, value):
-        self.distance_transform_th = value
+        self._distance_transform_th = value
