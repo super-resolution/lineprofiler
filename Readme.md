@@ -1,5 +1,5 @@
 # Line Profiler
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2643214.svg)](https://doi.org/10.5281/zenodo.2643214)
 To evaluate our results we constructed an automated image processing software. The program is called Line Profiler and is available as executable on:
 Zenodo… 
 In a first step Line Profiler uses several image processing algorithms to select potential regions of interest. The SNC Helix structure is spotted by detecting closed shapes in the image. This is achieved by blurring the image with a nxn Gaussian Kernel, to account for potential holes in the line. A threshold algorithm (1) converts the grayscale to a binary image. A floodfill algorithm leaves only the areas embedded in closed shapes. The maximum value of a distance Transformation (2) reveals the candidate points where the helix structure is in plain. The direction of the applied line profile is determined by the gradient direction arctan(SobelX, SobelY) of the edge point (3) closest to the preselected candidate point.
