@@ -163,6 +163,7 @@ class QProcessThread(QThread):
         create and align line profiles of candidate indices
         :return: line profiles and their position in a RGB image
         """
+        line_profiles_raw = np.zeros_like(self.image_RGB)
         for i in range(self.candidate_indices.shape[1]):
             if self._use_green:
                 k, l = self.candidate_indices_green[0, i], self.candidate_indices_green[1, i]
@@ -194,8 +195,11 @@ class QProcessThread(QThread):
                 profile_blue = np.delete(profile_blue, [range(start)], 0)[0:110*self.sampling]
                 self.profiles_blue.append(profile_blue)
             x, y = np.linspace(k - x_i, k + 2 * x_i, 3*num), np.linspace(l - y_i, l + 2 * y_i, 3*num)
-            self.image_RGB[x.astype(np.int32), y.astype(np.int32)] = np.array([50000,0, 0 ])
-        self.images_RGB.append(self.image_RGB)
+            #self.image_RGB[x.astype(np.int32), y.astype(np.int32)] = np.array([50000,0, 0 ])
+            line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
+        #self.images_RGB.append(self.image_RGB)
+        self.images_RGB.append(line_profiles_raw)
+
 
 
     def run(self):
