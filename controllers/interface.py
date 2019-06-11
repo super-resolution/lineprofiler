@@ -1,6 +1,6 @@
 
 from controllers.display import *
-from controllers.processing import *
+from controllers.processing_green import *
 from PyQt5 import QtCore
 
 class interface():

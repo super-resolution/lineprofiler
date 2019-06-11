@@ -43,7 +43,7 @@ class QProcessThread(QThread):
             print("no blue channel")
         self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
         self.candidate_indices = np.zeros((1))
-        self.image_RGB = cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGB)
+        self.image_RGB = cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGB).astype(np.uint16)
         #intensity threshold to be accepted by profiler
         self.threshold = 1000
         self._distance_transform_th = 0.5#0.85
@@ -55,7 +55,7 @@ class QProcessThread(QThread):
         image = cv2.blur(image, (5, 5))
 
         # canny and gradient images
-        self.image_canny = cv2.Canny(image, 150, 220)
+        self.image_canny = cv2.Canny(image, 100, 130)
         #if self._z == 62:
         #    cv2.imshow("Canny image", self.image_canny)
         #    cv2.waitKey(0)
@@ -70,6 +70,7 @@ class QProcessThread(QThread):
         cv2.floodFill(im_floodfill, mask, (0, 0), 255)
         self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
         cv2.imshow("asdf",self.im_floodfill_inv)
+        cv2.imshow("Canny", self.image_canny)
         cv2.waitKey(0)
 
     def gradient_image(self):

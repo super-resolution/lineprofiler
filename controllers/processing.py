@@ -55,7 +55,7 @@ class QProcessThread(QThread):
             print("no blue channel")
         self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
         self.candidate_indices = np.zeros((1))
-        self.image_RGB = cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGB)
+        self.image_RGB = cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGB).astype(np.int32)
         #intensity threshold to be accepted by profiler
         self._init_distance_transform()
         self.gradient_image()
@@ -84,7 +84,8 @@ class QProcessThread(QThread):
 
         self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
         cv2.imshow("asdf",self.im_floodfill_inv)
-        #cv2.waitKey(0)
+        cv2.imshow("asdfg", self.image_canny)
+        cv2.waitKey(0)
 
     def gradient_image(self):
         image = self.image
@@ -163,8 +164,10 @@ class QProcessThread(QThread):
         create and align line profiles of candidate indices
         :return: line profiles and their position in a RGB image
         """
-        line_profiles_raw = np.zeros_like(self.image_RGB)
+        #line_profiles_raw = np.zeros_like(self.image_RGB)
+        print(self.candidate_indices.shape[1])
         for i in range(self.candidate_indices.shape[1]):
+            print(i)
             if self._use_green:
                 k, l = self.candidate_indices_green[0, i], self.candidate_indices_green[1, i]
                 gradient = self.grad_image_green[k,l]
@@ -195,10 +198,11 @@ class QProcessThread(QThread):
                 profile_blue = np.delete(profile_blue, [range(start)], 0)[0:110*self.sampling]
                 self.profiles_blue.append(profile_blue)
             x, y = np.linspace(k - x_i, k + 2 * x_i, 3*num), np.linspace(l - y_i, l + 2 * y_i, 3*num)
-            #self.image_RGB[x.astype(np.int32), y.astype(np.int32)] = np.array([50000,0, 0 ])
-            line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
-        #self.images_RGB.append(self.image_RGB)
-        self.images_RGB.append(line_profiles_raw)
+            self.image_RGB[x.astype(np.int32), y.astype(np.int32)] = np.array([50000,0, 0 ])
+            #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
+        self.images_RGB.append(self.image_RGB)
+        cv2.imshow("asdf", self.image_RGB)
+        #self.images_RGB.append(line_profiles_raw)
 
 
 
