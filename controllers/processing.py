@@ -6,6 +6,12 @@ from PyQt5.QtCore import QThread,pyqtSignal
 import numba
 import tifffile
 import os
+from skimage.morphology import skeletonize_3d
+from skimage.measure import label
+from sklearn.neighbors import NearestNeighbors
+from scipy.interpolate import UnivariateSpline
+import networkx as nx
+
 
 
 class QProcessThread(QThread):
@@ -47,6 +53,7 @@ class QProcessThread(QThread):
         self.current_image = self.image_stack[0,slice]
         self.image = np.clip(self.image_stack[0,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
         self.current_image_green = self.image_stack[1,slice]
+        self.image_green = np.clip(self.image_stack[1,slice]*2.5/self.intensity_threshold, 0, 255).astype(np.uint8)
         self.two_channel = False
         if self.image_stack.shape[0] == 3:
             self.current_image_blue = self.image_stack[2,slice]
@@ -85,7 +92,7 @@ class QProcessThread(QThread):
         self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
         cv2.imshow("asdf",self.im_floodfill_inv)
         cv2.imshow("asdfg", self.image_canny)
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
 
     def gradient_image(self):
         image = self.image
@@ -100,10 +107,11 @@ class QProcessThread(QThread):
         self.grad_image_green = np.arctan2(X,Y)
 
     def _line_profile(self, image, start, end):
-        num = np.linalg.norm(np.array(start) - np.array(end)) * self.px_size*100*self.sampling
+        num = int(np.linalg.norm(np.array(start) - np.array(end)) * self.px_size*100*self.sampling)
+        a = start[0]
         x, y = np.linspace(start[0], end[0], num), np.linspace(start[1], end[1], num)
-
-        return scipy.ndimage.map_coordinates(image, np.vstack((x, y)))
+        coords = np.vstack((x, y))
+        return scipy.ndimage.map_coordinates(image, coords)
 
     @staticmethod
     @numba.jit(nopython=True)
@@ -174,12 +182,17 @@ class QProcessThread(QThread):
 
             else:
                 k, l = self.candidate_indices[0, i], self.candidate_indices[1, i]
-                gradient = self.grad_image[k,l]
+                index = np.where(np.logical_and(self.gradient_fitted_table[:,0].astype(np.int32)==k, self.gradient_fitted_table[:,1].astype(np.int32)==l))
+                if index[0].size >0:
+                    index = index[0][0]
+                    gradient = np.arctan(self.gradient_fitted_table[index,3]/self.gradient_fitted_table[index,2])+np.pi/2
+                else:
+                    continue
 
-            x_i = -20 * np.cos(gradient)
-            y_i = -20 * np.sin(gradient)
+            x_i = -30 * np.cos(gradient)
+            y_i = -30 * np.sin(gradient)
             start = [k - x_i, l - y_i]
-            end = [k + 2 * x_i, l + 2 * y_i]
+            end = [k +  x_i, l +  y_i]
             num = np.sqrt(x_i ** 2 + y_i ** 2)
             profile = self._line_profile(self.current_image, start, end)
             profile_green = self._line_profile(self.current_image_green, start, end)
@@ -197,7 +210,7 @@ class QProcessThread(QThread):
             if not self.two_channel:
                 profile_blue = np.delete(profile_blue, [range(start)], 0)[0:110*self.sampling]
                 self.profiles_blue.append(profile_blue)
-            x, y = np.linspace(k - x_i, k + 2 * x_i, 3*num), np.linspace(l - y_i, l + 2 * y_i, 3*num)
+            x, y = np.linspace(k - x_i, k + x_i, 3*num), np.linspace(l - y_i, l + y_i, 3*num)
             self.image_RGB[x.astype(np.int32), y.astype(np.int32)] = np.array([50000,0, 0 ])
             #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
         self.images_RGB.append(self.image_RGB)
@@ -216,10 +229,11 @@ class QProcessThread(QThread):
 
                 maximum = int(dis_transform.max()) + 1
                 dis_transform[np.where(dis_transform < self._distance_transform_th * dis_transform.max())] = 0
+                self.candidate_indices = np.array(np.where(dis_transform != 0))
 
-                self.get_candidates_accelerated(maximum, dis_transform, self.image_canny, self.candidates, self._distance_transform_th)
-                self.candidate_indices_green = np.array(np.where(dis_transform != 0))
-                self.candidate_indices = np.array(np.where(self.candidates != 0))
+                self._compute_orientation()
+                #self.get_candidates_accelerated(maximum, dis_transform, self.image_canny, self.candidates, self._distance_transform_th)
+                #self.candidate_indices = np.array(np.where(self.candidates != 0))
                 self.show_profiles()
 
             else:
@@ -277,3 +291,84 @@ class QProcessThread(QThread):
     @distance_transform_th.setter
     def distance_transform_th(self, value):
         self._distance_transform_th = value
+
+
+    def _compute_orientation(self):
+        """
+        Create distance transform of closed shapes in the current self.image
+        """
+        image = self.image_green
+        image = cv2.blur(image, (self.blur, self.blur))
+
+        # canny and gradient images
+        self.image_canny = cv2.Canny(image, 150, 220)
+        # build threshold image
+        ret, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        thresh = cv2.bitwise_not(thresh)
+
+        self.skeleton = skeletonize_3d((thresh/255).astype(np.uint8)).astype(np.uint8)
+        #contour = self.collapse_contours(contours)
+
+        skeleton = self.skeleton#cv2.blur(self.skeleton, (3, 3))
+        colormap = label(skeleton, connectivity=2)
+        lines = []
+        for i in range(colormap.max()-1):
+            j = i+1
+            line = np.where(colormap == j)
+            if len(line[0]) >40:
+                lines.append(line)
+            else:
+                for k in range(line[1].shape[0]):
+                    self.skeleton[line[0][k],line[1][k]] = 0
+        self.point_list = []
+        self.point_fitted_list = []
+        self.gradient_list = []
+        k=0
+        while k < len(lines):
+            points = np.array(lines[k]).T
+            points = self.order_points_to_line(points)
+            distance = np.cumsum(np.sqrt(np.sum(np.diff(points, axis=0) ** 2, axis=1)))
+            for i in range(distance.shape[0]):
+                if distance[i] -distance[i-1] >10:
+                    distance = distance[:i]
+                    lines.append(points[i+2:].T)
+                    points = points[:i+1]
+                    break
+            if points.shape[0]<10:
+                break
+            distance = np.insert(distance, 0, 0) / distance[-1]
+            self.point_list.append(points)
+
+
+        # Build a list of the spline function, one for each dimension:
+
+            splines = [UnivariateSpline(distance, coords, k=3, s=points.shape[0]*10) for coords in points.T]
+            dsplines = [spline.derivative() for spline in splines]
+            # Computed the spline for the asked distances:
+            alpha = np.linspace(0, 1, points.shape[0])
+            points_fitted = np.vstack(spl(alpha) for spl in splines).T
+            self.point_fitted_list.append(points_fitted)
+            self.gradient_list.append(np.vstack(spl(alpha) for spl in dsplines).T)
+            plt.plot(points[...,0],points[...,1],color="g")
+            plt.plot(points_fitted[...,0],points_fitted[...,1])
+        #for i in range(self.candidates.shape[0]):
+            k+=1
+        plt.plot(self.candidate_indices[0],self.candidate_indices[1])
+
+        result_table = []
+        for i in range(len(self.point_fitted_list)):
+            for j in range(self.point_fitted_list[i].shape[0]):
+                result_table.append([int(self.point_fitted_list[i][j][0]), int(self.point_fitted_list[i][j][1]),
+                                    self.gradient_list[i][j][0], self.gradient_list[i][j][1] ])
+        self.gradient_fitted_table = np.array(result_table)
+        plt.show()
+
+    @staticmethod
+    def order_points_to_line(points):
+        if points.shape[1]!=2:
+            raise ValueError(f"Wrong pointset dim {points.shape[1]} should be 2")
+        clf = NearestNeighbors(2).fit(points)
+        G = clf.kneighbors_graph()
+        T = nx.from_scipy_sparse_matrix(G)
+        order = list(nx.dfs_preorder_nodes(T, 0))
+        return points[order]

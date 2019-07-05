@@ -2,7 +2,7 @@ from viewer.random import Ui_MainWindow
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread,pyqtSignal
 import os
-from controllers.interface import interface
+from controllers.interface import Interface
 from controllers.image import ImageSIM
 
 
@@ -13,7 +13,7 @@ class MainWindow(Ui_MainWindow):
         super(MainWindow, self).__init__()
 
     def init_component(self, qt_window):
-        self.interface = interface(self)
+        self.interface = Interface(self)
         self.working_directory = os.getcwd()
         self.qt_window = qt_window
         self._add_handlers()

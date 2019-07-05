@@ -3,7 +3,7 @@ from controllers.display import *
 from controllers.processing_green import *
 from PyQt5 import QtCore
 
-class interface():
+class Interface():
     def __init__(self, main_window):
         self.current_image = []
         self.main_window = main_window
