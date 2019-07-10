@@ -7,7 +7,7 @@ from PyQt5.QtCore import QThread,pyqtSignal
 import tifffile
 import os
 from controllers.utility import *
-import matplotlib
+from matplotlib import cm
 
 
 
@@ -25,10 +25,12 @@ class QProcessThread(QThread):
         self.blur = 20
         self._distance_transform_th = 0.4#0.85
         self.intensity_threshold = 30
+        self.fit = fit_gaussian()
+        self.colormap = cm.gist_ncar
 
 
 
-    def set_data(self, image_stack, px_size):
+    def set_data(self, image_stack, px_size,  f_name):
         self.image_stack = image_stack[0:3]
         self.results = np.zeros((self.image_stack.shape[1],2))
         self.px_size = px_size
@@ -37,8 +39,12 @@ class QProcessThread(QThread):
         self.profiles_blue = []
         self.mean_distance = []
         self.distances = []
-        self.images_RGB = []
+        self.images_RGBA = []
         self.sampling = 10
+        path = os.getcwd() + r"\data\\" + os.path.splitext(os.path.basename(f_name))[0]
+        if not os.path.exists(path):
+            os.makedirs(path)
+        self.path = path
 
 
     def _set_image(self, slice):
@@ -57,17 +63,9 @@ class QProcessThread(QThread):
 
         self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
         self.candidate_indices = np.zeros((1))
-        self.image_RGB = cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGB).astype(np.uint16)*200
+        self.image_RGBA = np.zeros((self.current_image.shape[0],self.current_image.shape[1],4)).astype(np.uint16)#cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGBA).astype(np.uint16)*200
         # spline fit skeletonized image
-        self.gradient_table = compute_line_orientation(self.image, self.blur)
-
-
-
-    def _line_profile(self, image, start, end):
-        num = np.linalg.norm(np.array(start) - np.array(end)) * self.px_size*100*self.sampling
-        x, y = np.linspace(start[0], end[0], num), np.linspace(start[1], end[1], num)
-
-        return scipy.ndimage.map_coordinates(image, np.vstack((x, y)))
+        self.gradient_table,self.shapes = compute_line_orientation(self.image, self.blur)
 
 
 
@@ -77,52 +75,57 @@ class QProcessThread(QThread):
         :return: line profiles and their position in a RGB image
         """
         #line_profiles_raw = np.zeros_like(self.image_RGB)
-        counter = 0
+        counter = -1
         count = self.gradient_table.shape[0]
+        for i in range(len(self.shapes)):
+            color = self.colormap(i/len(self.shapes))
+            for j in range(self.shapes[i]):
+                counter+=1
 
-        for j in range(self.gradient_table.shape[0]):
-            points = self.gradient_table[j,0:2]
-            gradients = self.gradient_table[j,2:4]
-            #for i in range(points.shape[0]):
-            counter+=1
-            print(j)
+                points = self.gradient_table[counter,0:2]
+                gradients = self.gradient_table[counter,2:4]
+                #for i in range(points.shape[0]):
+                print(counter)
 
-            k, l = points[0],points[1]
-            gradient = np.arctan(gradients[1]/gradients[0])+np.pi/2
+                k, l = points[0],points[1]
+                gradient = np.arctan(gradients[1]/gradients[0])+np.pi/2
 
-            x_i = -30 * np.cos(gradient)
-            y_i = -30 * np.sin(gradient)
-            start = [k - x_i, l - y_i]
-            end = [k +   x_i, l +  y_i]
-            num = np.sqrt(x_i ** 2 + y_i ** 2)
-            profile = self._line_profile(self.current_image, start, end)
-            try:
-                print(np.argmax(profile))
-                x = np.where(profile>0)[0][0]
-                profile = profile[150:650]
-            except:
-                continue
-            if profile.shape[0]!=500:
-                print("to short")
-                continue
+                x_i = -30 * np.cos(gradient)
+                y_i = -30 * np.sin(gradient)
+                start = [k - x_i, l - y_i]
+                end = [k +   x_i, l +  y_i]
+                num = np.sqrt(x_i ** 2 + y_i ** 2)
+                profile = line_profile(self.current_image, start, end, px_size=self.px_size, sampling=self.sampling)
+                try:
+                    print(np.argmax(profile))
+                    #x = np.where(profile>0)[0][0]
+                    profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
+                except:
+                    continue
+                if profile.shape[0]<499*self.px_size*100:
+                    print("to short")
+                    continue
 
-            #profile = np.delete(profile, [range(start)], 0)[0:110*self.sampling]
-            self.profiles.append(profile)
+                #profile = np.delete(profile, [range(start)], 0)[0:110*self.sampling]
+                self.profiles.append(profile)
 
 
-            x, y = np.linspace(k - x_i, k +  x_i, 3*num), np.linspace(l - y_i, l + y_i, 3*num)
-            try:
-                self.image_RGB[x.astype(np.int32), y.astype(np.int32)] = np.array([50000,0, 0 ])
-            except:
-                print("out of bounds")
-            self.sig.emit(int((counter) / count* 100))
+                x, y = np.linspace(k - x_i, k +  x_i, 3*num), np.linspace(l - y_i, l + y_i, 3*num)
+                if x.min()>0 and y.min()>0 and x.max()<self.image_RGBA.shape[0] and y.max()< self.image_RGBA.shape[1]:
+                    self.image_RGBA[x.astype(np.int32), y.astype(np.int32)] = np.array([color[0],color[1], color[2],color[3]])*50000
+                else:
+                    print("out of bounds")
+                self.sig.emit(int((counter) / count* 100))
 
+            red = np.array(self.profiles)
+            red_mean = np.mean(red, axis=0)
+            self.fit.fit_data(red_mean, self.px_size, self.sampling, i, self.path, c=color)
             #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
-        self.images_RGB.append(self.image_RGB)
-        cv2.imshow("asdf", self.image_RGB)
+        self.images_RGBA.append(self.image_RGBA)
+        cv2.imshow("asdf", self.image_RGBA)
         #self.images_RGB.append(line_profiles_raw)
 
-    def run(self):
+    def run(self,): #todo: don't plot in main thread
         # distance transform threshold candidates
         try:
             for i in range(self.image_stack.shape[1]):
@@ -133,41 +136,31 @@ class QProcessThread(QThread):
 
                 else:
                     print("nothing found in layer ", i)
-            tifffile.imwrite(os.getcwd()+r'\data\profiles.tif', np.asarray(self.images_RGB).astype(np.uint16), photometric='rgb')
+
+            tifffile.imwrite(self.path +r'\Image_with_RGBA_profiles.tif', np.asarray(self.images_RGBA)[...,0:3].astype(np.uint16), photometric='rgb')
+            new = np.zeros((self.current_image.shape[0],self.current_image.shape[1],3))
+            new[...,0] = self.current_image
+            new[...,1] = self.current_image
+            new[...,2] = self.current_image
+            new *= 300
+            new += np.asarray(self.images_RGBA)[0,:,:,0:3]
+            new = np.clip(new, 0,65535)
+            tifffile.imwrite(self.path+r'\Image_overlay.tif', new[...,0:3].astype(np.uint16), photometric='rgb')
+
 
             red = np.array(self.profiles)
             red_mean = np.mean(red, axis=0)
-            np.savetxt(os.getcwd() + r"\data\red_mean.txt", red_mean)
-            self.fit_data(red_mean)
+            np.savetxt(self.path + r"\red_mean.txt", red_mean)
+            self.fit.fit_data(red_mean, self.px_size, self.sampling, 9999, self.path)
             plt.plot(red_mean,"r")
             plt.show()
-            np.savetxt(os.getcwd()+r"\data\red.txt",red)
+            np.savetxt(self.path+r"\red.txt",red)
         except:
             raise
         finally:
             self.done.emit()
 
-    def fit_data(self, data):
-        x = np.linspace(0, data.shape[0]-1, data.shape[0])
-        optim = fit_data_to_gaussian(data)
 
-        matplotlib.rc('font', **{'size' : 12},)
-        matplotlib.rcParams['font.sans-serif'] = "Helvetica"
-        x_aligned = x-30 * self.px_size * 100 * self.sampling+150
-        plt.plot(x_aligned, gaussian(x, optim[0],optim[1],optim[2],optim[-1])/data.max(),
-                 lw=1, c='r', ls='--', label='bi-Gaussian fit')
-        plt.plot(x_aligned, gaussian(x, optim[3], optim[4], optim[5], optim[-1])/data.max(),
-                 lw=1, c='r', ls='--', )
-        #plt.plot(x_aligned, gaussian(x, optim[6], optim[7], optim[8], optim[-1])/data.max(),
-        #         lw=1, c='r', ls='--', )
-        plt.plot(x_aligned, data/data.max(), label="averaged line profile")
-        plt.legend(loc='best')
-        plt.ylabel("normed intensity [a.u.]")
-        plt.xlabel("distance [nm]")# coordinate space perpendicular to spline fit
-
-        print("distance = ", optim[1]-optim[4])
-        print("offset = ", optim[-1])
-        plt.show()
 
     @property
     def distance_transform_th(self):

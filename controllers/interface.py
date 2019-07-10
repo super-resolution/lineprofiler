@@ -11,6 +11,7 @@ class Interface():
         self.main_window.viewer_container_layout.addWidget(self.display.widget)
         self.current_processing_thread = QProcessThread()
         self.intensity_threshold = 30
+        self.pixel_size = 0.01
 
     def set_channel_color(self):
         a=0
@@ -31,6 +32,9 @@ class Interface():
     def set_process_upper_lim(self, value):
         self.current_processing_thread.upper_lim = value
 
+    def set_px_size(self, value):
+        self.pixel_size = value
+
     def set_channel_visible(self, i, enabled):
         self.current_image.channel = (i,enabled)
         self.display.show_image()
@@ -48,7 +52,7 @@ class Interface():
 
     def show_image(self, image):
         if image[0].isParsingNeeded:
-            image[0].parse()
+            image[0].parse(calibration_px=self.pixel_size)
         self.current_image = image[0]
         for i in range(self.current_image.metaData["ShapeSizeC"]):
             box = getattr(self.main_window, "checkBox_channel" + str(i))
@@ -56,7 +60,7 @@ class Interface():
             slider = getattr(self.main_window, "slider_channel" + str(i) + "_slice")
             slider.setMaximum(self.current_image.metaData["ShapeSizeZ"]-1)
         print(self.main_window.checkBox_channel0.isCheckable())
-        self.current_processing_thread.set_data(self.current_image.data, self.current_image.metaData["SizeX"])
+        self.current_processing_thread.set_data(self.current_image.data, self.current_image.metaData["SizeX"], self.current_image.file_path)
 
     def update_image(self, channel, value):
         self.current_image.index = (channel, value)

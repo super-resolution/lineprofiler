@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 from scipy import optimize
 from scipy.stats import chisquare
+from scipy import ndimage
+import matplotlib
+import os
 
 def create_gradient_image(image, blur, sobel=9):
     """
@@ -126,14 +129,16 @@ def compute_line_orientation(image, blur):
 
     #sort results to array
     result_table = []
+    shapes = []
     for i in range(len(point_fitted_list)):
+        shapes.append(point_fitted_list[i].shape[0])
         for j in range(point_fitted_list[i].shape[0]):
             result_table.append([int(point_fitted_list[i][j][0]), int(point_fitted_list[i][j][1]),
-                                 gradient_list[i][j][0], gradient_list[i][j][1]])
+                                 gradient_list[i][j][0], gradient_list[i][j][1],i])
     gradient_fitted_table = np.array(result_table)
 
     plt.show()
-    return gradient_fitted_table
+    return gradient_fitted_table, shapes
 
 def order_points_to_line(points):
     """
@@ -219,61 +224,203 @@ def get_candidates_accelerated(maximum, dis_transform, image_canny, canny_candid
                         if dis_sub[k, l] == min_value:
                             canny_candidates[i - maximum + k, j - maximum+l] = 1
 
-
-def gaussian(x, height, center, width, noise_lvl):
-    return height * np.exp(-(x - center) ** 2 / (2 * width ** 2)) + noise_lvl
-
-def two_gaussians(x, h1, c1, w1, h2, c2, w2, noise_lvl):
-    return (gaussian(x, h1, c1, w1, 0) +
-            gaussian(x, h2, c2, w2, 0) + noise_lvl)
-
-def three_gaussians(x, h1, c1, w1, h2, c2, w2, h3, c3, w3, noise_lvl):
-    return (gaussian(x, h1, c1, w1, 0) +
-            gaussian(x, h2, c2, w2, 0) +
-            gaussian(x, h3, c3, w3, 0) + noise_lvl)
-
-def find_maximas(data, n=3):
-    maximas = argrelextrema(data, np.greater)
-    maxima_value = data[maximas]
-    values = np.zeros(n)
-    for i in range(n):
-        index = np.argmax(maxima_value)
-        maxima_value[index] = 0
-        values[i] = maximas[0][index]
-    return values
+def line_profile(image, start, end, px_size=0.032, sampling=1):
+    num = np.linalg.norm(np.array(start) - np.array(end)) * px_size * 100 * sampling
+    x, y = np.linspace(start[0], end[0], num), np.linspace(start[1], end[1], num)
+    return ndimage.map_coordinates(image, np.vstack((x, y)))
 
 
-def fit_data_to_gaussian(data):
-    x = np.linspace(0, data.shape[0]-1, data.shape[0])
-    maximas = find_maximas(data)
-    print(maximas)
-    height = 0.5
-    guess = [height, 0.5, maximas[0], 0]
-    guess2 = [height, 0.5, maximas[0],
-              height, 0.5, maximas[1], 0]
-    guess3 = [height, 0.5, maximas[0],
-              height, 0.5, maximas[1],
-              height, 0.5, maximas[2], 0]
+class fit_gaussian:
 
-    # calculate error by squared distance to data
-    errfunc = lambda p, x, y: (gaussian(x, *p) - y) ** 2
-    errfunc2 = lambda p, x, y: (two_gaussians(x, *p) - y) ** 2
-    errfunc3 = lambda p, x, y: (three_gaussians(x, *p) - y) ** 2
+    def fit_data(self, data, px_size, sampling, nth_line, path, c=(1.0,0.0,0.0,1.0)):
+        matplotlib.rc('font', **{'size' : 12},)
+        matplotlib.rcParams['font.sans-serif'] = "Helvetica"
 
-    optim, success = optimize.leastsq(errfunc, guess[:], args=(x, data))
-    optim2, success = optimize.leastsq(errfunc2, guess2[:], args=(x, data))
-    optim3, success = optimize.leastsq(errfunc3, guess3[:], args=(x, data))
+        x = np.linspace(0, data.shape[0]-1, data.shape[0])
+        x_aligned = x-30 * px_size * 100 * sampling+(50*px_size*100)
+
+        optim = self.fit_data_to_gaussian(data)
+        #plot fit
+        fig = plt.figure()
+        ax1 = fig.add_axes((0.1, 0.2, 0.8, 0.7))
+        ax1.plot(x_aligned, self.gaussian(x, optim[0],optim[1],optim[2],optim[-1])/data.max(),
+                 lw=1, c='r', ls='--', label='bi-Gaussian fit')
+        ax1.plot(x_aligned, self.gaussian(x, optim[3], optim[4], optim[5], optim[-1])/data.max(),
+                 lw=1, c='r', ls='--', )
+        #plot data
+        ax1.plot(x_aligned, data/data.max(), c=c, label="averaged line profile")
+        ax1.legend(loc='best')
+        ax1.set_ylabel("normed intensity [a.u.]")
+        ax1.set_xlabel("distance [nm]")# coordinate space perpendicular to spline fit
+
+        optim_print = np.around(optim, decimals=2)
+        txt = f"Bi-gaussian fit parameters: \n" \
+              f"Peak distance: {np.abs(optim_print[2]-optim_print[5]):.2f} \n" \
+              f"Width: {optim_print[1]:.2f}, {optim_print[4]:.2f} \n" \
+              f"Intensity: {optim_print[0]:.2f}, {optim_print[3]:.2f}"
+        fig.text(0.5, 0.01, txt, ha='center')
+        fig.set_size_inches(7, 8, forward=True)
+        #print("distance = ", optim[2]-optim[5])
+        #print("offset = ", optim[-1])
 
 
-    chi1 = lambda p, x, y: ((gaussian(x, *p) - y) ** 2)/y
-    chi2 = lambda p, x, y: ((two_gaussians(x, *p) - y) ** 2)/y
-    chi3 = lambda p, x, y: ((three_gaussians(x, *p) - y) ** 2)/y
+        plt.savefig(path +rf'\profile_{nth_line}.png')
+        plt.close(fig)
+        #plt.show()
 
-    err = chi1(optim, x, data).sum()
-    err2 = chi2(optim2, x, data).sum()
-    err3 = chi3(optim3, x, data).sum()
+    def two_gaussians(self, x, h1, w1, c1, h2, w2, c2, noise_lvl):
+        """
+        Double gaussian function.
 
-    print(f"chi2 one gaussian {err} \nchi2 two gaussian {err2} \nchi3 three gaussian {err3}")
 
-    return optim2
 
+        Parameters
+        ----------
+        See :func: `gaussian`
+
+
+        Returns
+        -------
+        gaussian: ndarray
+            (nx1) array of y values corresponding to the given parameters
+        """
+        return (self.gaussian(x, h1, w1, c1, 0) +
+                self.gaussian(x, h2, w2, c2, 0) + noise_lvl)
+
+    def three_gaussians(self, x, h1, w1, c1, h2, w2, c2, h3, w3, c3, noise_lvl):
+        """
+        Triple gaussian function.
+
+
+
+        Parameters
+        ----------
+        See :func: `gaussian`
+
+
+        Returns
+        -------
+        gaussian: ndarray
+            (nx1) array of y values corresponding to the given parameters
+        """
+        return (self.gaussian(x, h1, w1, c1, 0) +
+                self.gaussian(x, h2, w2, c2, 0) +
+                self.gaussian(x, h3, w3, c3, 0) + noise_lvl)
+
+    def fit_data_to_gaussian(self, data):
+        """
+        Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
+        Return the optimal parameters found for two gaussians.
+
+        Parameters
+        ----------
+        data: ndarray
+            Given data (1d)
+
+        Returns
+        -------
+        optim2: tuple
+            Optimal parameters to fit two gaussians to data
+        """
+        x = np.linspace(0, data.shape[0]-1, data.shape[0])
+        maximas = self.find_maximas(data)
+        print(maximas)
+        height = data.max()/2
+        guess = [height, 0.5, maximas[0], 0]
+        bounds = np.array([[0,data.max()],[0,np.inf],[0,600],
+                            [0,0.1]]).T
+        guess2 = [height, 0.5, maximas[0],
+                  height, 0.5, maximas[1],0]
+        bounds2 = np.array([[0,data.max()],[0,np.inf],[0,600],
+                            [0, data.max()], [0, np.inf], [0,600],[0,0.1]]).T
+        guess3 = [height, 0.5, maximas[0],
+                  height, 0.5, maximas[0],
+                  height, 0.5, maximas[0], 0]
+        bounds3 = np.array([[0,data.max()],[0,np.inf],[0,600],
+                            [0, data.max()], [0, np.inf], [0,600],
+                            [0, data.max()], [0, np.inf], [0, 600],[0,0.1]]).T
+
+        # calculate error by squared distance to data
+        errfunc = lambda p, x, y: (self.gaussian(x, *p) - y) ** 2
+        errfunc2 = lambda p, x, y: (self.two_gaussians(x, *p) - y) ** 2
+        errfunc3 = lambda p, x, y: (self.three_gaussians(x, *p) - y) ** 2
+
+        result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
+        optim = result.x
+        result2 = optimize.least_squares(errfunc2, guess2[:], bounds=bounds2, args=(x, data))
+        optim2 = result2.x
+        result3 = optimize.least_squares(errfunc3, guess3[:], bounds=bounds3, args=(x, data))
+        optim3 = result3.x
+
+
+        chi1 = lambda p, x, y: ((self.gaussian(x, *p) - y) ** 2)/self.gaussian(x, *p)
+        chi2 = lambda p, x, y: ((self.two_gaussians(x, *p) - y) ** 2)/self.two_gaussians(x, *p)
+        chi3 = lambda p, x, y: ((self.three_gaussians(x, *p) - y) ** 2)/self.three_gaussians(x, *p)
+
+        err = chi1(optim, x, data).sum()
+        err2 = chi2(optim2, x, data).sum()
+        err3 = chi3(optim3, x, data).sum()
+
+        print(f"one gaussian chi2 {err}, cost {result.cost} \ntwo gaussian chi2 {err2}, cost {result2.cost} \nthree gaussian chi2 {err3}, cost {result3.cost}")
+        print(f"gaussian width {int(optim2[1])}, {int(optim2[4])}")
+        print(optim2)
+        return optim2
+
+    @staticmethod
+    def find_maximas(data, n=3):
+        """
+        Return the n biggest local maximas of a given 1d array.
+
+        Parameters
+        ----------
+        data: ndarray
+            Input data
+        n: int
+            Number of local maximas to find
+
+        Returns
+        -------
+        values: ndarray
+            Indices of local maximas.
+        """
+        maximas = argrelextrema(data, np.greater, order=2)
+        maxima_value = data[maximas]
+        values = np.zeros(n)
+        maximum = 0
+        for i in range(n):
+            index = np.argmax(maxima_value)
+            if maxima_value[index]< 0.7*maximum:
+                values[i] = values[0]
+                continue
+
+            maximum = maxima_value[index]
+            maxima_value[index] = 0
+
+            values[i] = maximas[0][index]
+        return values
+
+    @staticmethod
+    def gaussian(x, height, width, center, noise_lvl):
+        """
+        Simple guassian function.
+
+        Parameters
+        ----------
+        x: ndarray
+            Coordinate space in x direction
+        height: float
+            Maximum height of gaussian function
+        center: float
+            Center of gaussian funtcion
+        width: float
+            Width of gaussian function
+        noise_lvl: float
+            y offset (background lvl)
+
+        Returns
+        -------
+        gaussian: ndarray
+            (nx1) array of y values corresponding to the given parameters
+
+        """
+        return height * np.exp(-(x - center) ** 2 / (2 * width ** 2)) + noise_lvl

@@ -188,8 +188,8 @@ class ImageSIM(MicroscopeImage):
         #todo:hack 2d into 4d
         if len(self.data.shape) ==2:
             new_data = np.zeros((3,1,self.data.shape[0], self.data.shape[1]))
-            self.metaData['SizeX'] = 0.014
-            self.metaData['SizeY'] = 0.014
+            self.metaData['SizeX'] = calibration_px
+            self.metaData['SizeY'] = calibration_px
 
             new_data[1,0] = self.data
             self.data = new_data

@@ -2,17 +2,18 @@
 
 # Form implementation generated from reading ui file 'gui\random.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.12.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setEnabled(True)
-        MainWindow.resize(951, 736)
+        MainWindow.resize(951, 772)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/icon/icons/molecules2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         MainWindow.setWindowIcon(icon)
@@ -176,7 +177,7 @@ class Ui_MainWindow(object):
         self.groupBox_config = QtWidgets.QGroupBox(self.tab_4)
         self.groupBox_config.setObjectName("groupBox_config")
         self.gridLayoutWidget = QtWidgets.QWidget(self.groupBox_config)
-        self.gridLayoutWidget.setGeometry(QtCore.QRect(0, 19, 911, 51))
+        self.gridLayoutWidget.setGeometry(QtCore.QRect(0, 19, 911, 68))
         self.gridLayoutWidget.setObjectName("gridLayoutWidget")
         self.gridLayout = QtWidgets.QGridLayout(self.gridLayoutWidget)
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
@@ -192,9 +193,6 @@ class Ui_MainWindow(object):
         self.spinBox_lower_limit.setProperty("value", 400)
         self.spinBox_lower_limit.setObjectName("spinBox_lower_limit")
         self.gridLayout.addWidget(self.spinBox_lower_limit, 1, 1, 1, 1)
-        self.label_blur = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_blur.setObjectName("label_blur")
-        self.gridLayout.addWidget(self.label_blur, 0, 2, 1, 1)
         self.label_lower_lim = QtWidgets.QLabel(self.gridLayoutWidget)
         self.label_lower_lim.setObjectName("label_lower_lim")
         self.gridLayout.addWidget(self.label_lower_lim, 1, 0, 1, 1)
@@ -203,17 +201,28 @@ class Ui_MainWindow(object):
         self.spinBox_upper_limit.setProperty("value", 800)
         self.spinBox_upper_limit.setObjectName("spinBox_upper_limit")
         self.gridLayout.addWidget(self.spinBox_upper_limit, 1, 3, 1, 1)
-        self.spinBox_gaussian_blur = QtWidgets.QSpinBox(self.gridLayoutWidget)
-        self.spinBox_gaussian_blur.setSingleStep(1)
-        self.spinBox_gaussian_blur.setProperty("value", 5)
-        self.spinBox_gaussian_blur.setObjectName("spinBox_gaussian_blur")
-        self.gridLayout.addWidget(self.spinBox_gaussian_blur, 0, 3, 1, 1)
         self.doubleSpinBox_distance_threshold = QtWidgets.QDoubleSpinBox(self.gridLayoutWidget)
         self.doubleSpinBox_distance_threshold.setMaximum(1.0)
         self.doubleSpinBox_distance_threshold.setSingleStep(0.1)
         self.doubleSpinBox_distance_threshold.setProperty("value", 0.4)
         self.doubleSpinBox_distance_threshold.setObjectName("doubleSpinBox_distance_threshold")
         self.gridLayout.addWidget(self.doubleSpinBox_distance_threshold, 0, 1, 1, 1)
+        self.spinBox_gaussian_blur = QtWidgets.QSpinBox(self.gridLayoutWidget)
+        self.spinBox_gaussian_blur.setSingleStep(1)
+        self.spinBox_gaussian_blur.setProperty("value", 5)
+        self.spinBox_gaussian_blur.setObjectName("spinBox_gaussian_blur")
+        self.gridLayout.addWidget(self.spinBox_gaussian_blur, 0, 3, 1, 1)
+        self.label_blur = QtWidgets.QLabel(self.gridLayoutWidget)
+        self.label_blur.setObjectName("label_blur")
+        self.gridLayout.addWidget(self.label_blur, 0, 2, 1, 1)
+        self.px_size_label = QtWidgets.QLabel(self.gridLayoutWidget)
+        self.px_size_label.setObjectName("px_size_label")
+        self.gridLayout.addWidget(self.px_size_label, 2, 0, 1, 1)
+        self.spinBox_px_size = QtWidgets.QDoubleSpinBox(self.gridLayoutWidget)
+        self.spinBox_px_size.setDecimals(5)
+        self.spinBox_px_size.setProperty("value", 0.01)
+        self.spinBox_px_size.setObjectName("spinBox_px_size")
+        self.gridLayout.addWidget(self.spinBox_px_size, 2, 1, 1, 1)
         self.verticalLayout_4.addWidget(self.groupBox_config)
         self.groupBox_config_calibration = QtWidgets.QGroupBox(self.tab_4)
         font = QtGui.QFont()
@@ -496,7 +505,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusBar)
 
         self.retranslateUi(MainWindow)
-        self.tab_5.setCurrentIndex(0)
+        self.tab_5.setCurrentIndex(1)
         self.comboBox_channel3_color.setCurrentIndex(3)
         self.comboBox_channel0_color.setCurrentIndex(0)
         self.comboBox_channel2_color.setCurrentIndex(2)
@@ -517,9 +526,10 @@ class Ui_MainWindow(object):
         self.tab_5.setTabText(self.tab_5.indexOf(self.tab_3), _translate("MainWindow", "Select"))
         self.groupBox_config.setTitle(_translate("MainWindow", "Specific configurations"))
         self.label_distance_threshold.setText(_translate("MainWindow", "Distance threshold"))
-        self.label_upper_lim.setText(_translate("MainWindow", "Upper distance limit"))
+        self.label_upper_lim.setText(_translate("MainWindow", "Upper distance limit [nm]"))
+        self.label_lower_lim.setText(_translate("MainWindow", "Lower distance limit [nm]"))
         self.label_blur.setText(_translate("MainWindow", "Gaussian blur"))
-        self.label_lower_lim.setText(_translate("MainWindow", "Lower distance limit"))
+        self.px_size_label.setText(_translate("MainWindow", "Pixel size [micro meter]"))
         self.groupBox_config_calibration.setTitle(_translate("MainWindow", "Intensity threshold"))
         self.label.setText(_translate("MainWindow", "Threshold value"))
         self.tab_5.setTabText(self.tab_5.indexOf(self.tab_4), _translate("MainWindow", "Config"))
@@ -555,4 +565,5 @@ class Ui_MainWindow(object):
         self.checkBox_channel1.setText(_translate("MainWindow", "Ch2"))
         self.checkBox_channel3.setText(_translate("MainWindow", "Ch4"))
         self.pushButton_process.setText(_translate("MainWindow", "Run"))
+
 

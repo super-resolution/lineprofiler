@@ -39,6 +39,7 @@ class MainWindow(Ui_MainWindow):
             self.status_bar.showMessage("Line Profiler profiling lines"),
             self.pushButton_process.setEnabled(False))
         )
+        self.spinBox_px_size.valueChanged.connect(self.interface.set_px_size)
         self.spinBox_gaussian_blur.valueChanged.connect(self.interface.set_process_blur)
         self.doubleSpinBox_distance_threshold.valueChanged.connect(self.interface.set_process_distance_th)
 
