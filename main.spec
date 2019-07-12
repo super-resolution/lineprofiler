@@ -5,7 +5,7 @@ sys.setrecursionlimit(5000)
 block_cipher = None
 
 
-a = Analysis(['main.py'],
+a = Analysis(['src\\main.py'],
              pathex=['C:\\Users\\biophys\\PycharmProjects\\Fabi', r'C:\dev\WinPython-64bit-3.6.3.0Qt5\python-3.6.3.amd64'],
              binaries=[],
              datas=[],
