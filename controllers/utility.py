@@ -15,10 +15,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 from scipy import optimize
-from scipy.stats import chisquare
 from scipy import ndimage
 import matplotlib
-import os
 
 def create_gradient_image(image, blur, sobel=9):
     """
@@ -43,6 +41,7 @@ def create_gradient_image(image, blur, sobel=9):
     >>> image = cv2.imread("path_to_file.png")
     >>> gradient_image = create_gradient_image(image, 3)
     """
+
     image_b = cv2.blur(image, (blur, blur))
     X = cv2.Sobel(image_b.astype(np.float64), cv2.CV_64F, 1, 0, ksize=sobel)
     Y = cv2.Sobel(image_b.astype(np.float64), cv2.CV_64F, 0, 1, ksize=sobel)
@@ -51,7 +50,45 @@ def create_gradient_image(image, blur, sobel=9):
 
 def compute_line_orientation(image, blur):
     """
-    Create distance transform of closed shapes in the current self.image
+    Compute the orientation and position line resembling patterns in an image.
+
+    The image is convolved with a gaussian blur compensating for noise discontinuity or holes.
+    A thresholding algorithm (1) converts the image from grayscale to binary. Using Lees algorithm (2)
+    the expanded lines are reduced to one pixel width. The pixel coordinates from all still connected lines
+    are retrieved and tested for continuity. Points of discontinuity are used as breakpoints and all following
+    coordinates connected to a new line. An univariate spline of degree 3 is fitted to each line. The rounded
+    coordinates and their derivatives are returned in a table, together with the length of each line.
+
+    Parameters
+    ----------
+    image: ndarray
+        Image containing line resembling patterns
+    blur: int
+        Amount of blur to apply to the image. Should be in the order of magnitude of the line width in pixel.
+
+    Returns
+    -------
+    gradient_fitted_table: ndarray
+        X, Y position of the splines. X, Y values of the spline gradient.
+    shapes: ndarray
+        Lengths of the lines written in gradient_fitted_table.
+
+    References
+    ----------
+    (1)  Nobuyuki Otsu: A threshold selection method from grey level histograms.
+    In: IEEE Transactions on Systems, Man, and Cybernetics. New York, 9.1979, S. 62–66. ISSN 1083-4419
+    (2)  T.-C. Lee, R.L. Kashyap and C.-N. Chu,
+    Building skeleton models via 3-D medial surface/axis thinning algorithms.
+    Computer Vision, Graphics, and Image Processing, 56(6):462-478, 1994.
+
+    Example
+    -------
+    .. figure::
+
+    >>> compute_line_orientation(image, 20)
+
+    .. figure::
+
     """
     image = cv2.blur(image, (blur, blur))
 
@@ -69,7 +106,7 @@ def compute_line_orientation(image, blur):
     for i in range(colormap.max()):
         j = i + 1
         line = np.where(colormap == j)
-        if len(line[0]) > 30:
+        if len(line[0]) > 150:
             lines.append(line)
         else:
             for k in range(line[1].shape[0]):
@@ -83,7 +120,7 @@ def compute_line_orientation(image, blur):
         line_itterator += 1
         print(line_itterator)
         points = np.array(lines[line_itterator]).T
-        if points.shape[0] < 10:
+        if points.shape[0] < 70:
             continue
         order = order_points_to_line(points)
         if len(order)<points.shape[0]:
@@ -99,7 +136,7 @@ def compute_line_orientation(image, blur):
                 vec1 = points[i + 5] - points[i]
                 vec2 = points[i + 10] - points[i + 5]
                 direction = np.dot(vec1, vec2)
-                if direction < 25:
+                if direction < 50:
                     direction_change = i + 5
             if distance[i] - distance[i - 1] > 10 or i > direction_change:
                 distance = distance[:i]
@@ -231,8 +268,27 @@ def line_profile(image, start, end, px_size=0.032, sampling=1):
 
 
 class fit_gaussian:
+    """
+    Class to perform least_square fitting on a dataset.
+    Currently supports one to three gaussian functions.
+    """
 
-    def fit_data(self, data, px_size, sampling, nth_line, path, c=(1.0,0.0,0.0,1.0)):
+    def fit_data(self, data, px_size, sampling, nth_line, path, c=(1.0,0.0,0.0,1.0), n_profiles=0):
+        """
+        Fit given data to one to or three gaussians
+
+        Parameters
+        ----------
+        data: ndarray
+        px_size: float [micro meter]
+        sampling: int
+        nth_line: int
+        path: str
+        c: tuble
+        n_profiles: int
+
+
+        """
         matplotlib.rc('font', **{'size' : 12},)
         matplotlib.rcParams['font.sans-serif'] = "Helvetica"
 
@@ -255,6 +311,7 @@ class fit_gaussian:
 
         optim_print = np.around(optim, decimals=2)
         txt = f"Bi-gaussian fit parameters: \n" \
+              f"Number of profiles: {n_profiles} \n" \
               f"Peak distance: {np.abs(optim_print[2]-optim_print[5]):.2f} \n" \
               f"Width: {optim_print[1]:.2f}, {optim_print[4]:.2f} \n" \
               f"Intensity: {optim_print[0]:.2f}, {optim_print[3]:.2f}"
@@ -272,8 +329,6 @@ class fit_gaussian:
         """
         Double gaussian function.
 
-
-
         Parameters
         ----------
         See :func: `gaussian`
@@ -290,8 +345,6 @@ class fit_gaussian:
     def three_gaussians(self, x, h1, w1, c1, h2, w2, c2, h3, w3, c3, noise_lvl):
         """
         Triple gaussian function.
-
-
 
         Parameters
         ----------
@@ -327,18 +380,18 @@ class fit_gaussian:
         print(maximas)
         height = data.max()/2
         guess = [height, 0.5, maximas[0], 0]
-        bounds = np.array([[0,data.max()],[0,np.inf],[0,600],
+        bounds = np.array([[0,data.max()+0.1],[0,np.inf],[0,600],
                             [0,0.1]]).T
         guess2 = [height, 0.5, maximas[0],
                   height, 0.5, maximas[1],0]
-        bounds2 = np.array([[0,data.max()],[0,np.inf],[0,600],
-                            [0, data.max()], [0, np.inf], [0,600],[0,0.1]]).T
+        bounds2 = np.array([[0,data.max()+0.1],[0,np.inf],[0,600],
+                            [0, data.max()+0.1], [0, np.inf], [0,600],[0,0.1]]).T
         guess3 = [height, 0.5, maximas[0],
                   height, 0.5, maximas[0],
                   height, 0.5, maximas[0], 0]
-        bounds3 = np.array([[0,data.max()],[0,np.inf],[0,600],
-                            [0, data.max()], [0, np.inf], [0,600],
-                            [0, data.max()], [0, np.inf], [0, 600],[0,0.1]]).T
+        bounds3 = np.array([[0,data.max()+0.1],[0,np.inf],[0,600],
+                            [0, data.max()+0.1], [0, np.inf], [0,600],
+                            [0, data.max()+0.1], [0, np.inf], [0, 600],[0,0.1]]).T
 
         # calculate error by squared distance to data
         errfunc = lambda p, x, y: (self.gaussian(x, *p) - y) ** 2
@@ -385,18 +438,21 @@ class fit_gaussian:
         """
         maximas = argrelextrema(data, np.greater, order=2)
         maxima_value = data[maximas]
-        values = np.zeros(n)
+        values = np.ones(n)
         maximum = 0
         for i in range(n):
-            index = np.argmax(maxima_value)
-            if maxima_value[index]< 0.7*maximum:
-                values[i] = values[0]
-                continue
+            try:
+                index = np.argmax(maxima_value)
+                if maxima_value[index]< 0.7*maximum:
+                    values[i] = values[0]
+                    continue
 
-            maximum = maxima_value[index]
-            maxima_value[index] = 0
+                maximum = maxima_value[index]
+                maxima_value[index] = 0
 
-            values[i] = maximas[0][index]
+                values[i] = maximas[0][index]
+            except:
+                print("zero exception")
         return values
 
     @staticmethod

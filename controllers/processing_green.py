@@ -22,15 +22,28 @@ class QProcessThread(QThread):
         super(QProcessThread, self).__init__(parent)
         self.upper_lim = 800
         self.lower_lim = 400
-        self.blur = 20
+        self.blur = 40
         self._distance_transform_th = 0.4#0.85
-        self.intensity_threshold = 30
+        self.intensity_threshold = 80
         self.fit = fit_gaussian()
         self.colormap = cm.gist_ncar
 
 
 
     def set_data(self, image_stack, px_size,  f_name):
+        """
+        Set data for processing
+
+        Parameters
+        ----------
+        image_stack: ndarray
+            Ndimage of shape (C,Z,X,Y)
+        px_size: float
+            Pixel size [micro meter]
+        f_name: str
+            File name to save processed data to.
+
+        """
         self.image_stack = image_stack[0:3]
         self.results = np.zeros((self.image_stack.shape[1],2))
         self.px_size = px_size
@@ -49,7 +62,7 @@ class QProcessThread(QThread):
 
     def _set_image(self, slice):
         """
-        preprocess image
+        Preprocess image
 
         Parameters
         ----------
@@ -57,9 +70,8 @@ class QProcessThread(QThread):
             Current slice of image stack
 
         """
-        self.current_image = self.image_stack[1,slice].astype(np.uint16)
-        self.image = np.clip(self.image_stack[1,slice]*40/self.intensity_threshold, 0, 255).astype(np.uint8)
-
+        self.current_image = self.image_stack[1,slice].astype(np.uint16)*10
+        self.image = np.clip(self.image_stack[1,slice]*200/self.intensity_threshold, 0, 255).astype(np.uint8)
 
         self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
         self.candidate_indices = np.zeros((1))
@@ -71,14 +83,14 @@ class QProcessThread(QThread):
 
     def _show_profiles(self):
         """
-        create and align line profiles of candidate indices
-        :return: line profiles and their position in a RGB image
+        Create and evaluate line profiles.
         """
         #line_profiles_raw = np.zeros_like(self.image_RGB)
         counter = -1
         count = self.gradient_table.shape[0]
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
+            current_profile= []
             for j in range(self.shapes[i]):
                 counter+=1
 
@@ -108,6 +120,7 @@ class QProcessThread(QThread):
 
                 #profile = np.delete(profile, [range(start)], 0)[0:110*self.sampling]
                 self.profiles.append(profile)
+                current_profile.append(profile)
 
 
                 x, y = np.linspace(k - x_i, k +  x_i, 3*num), np.linspace(l - y_i, l + y_i, 3*num)
@@ -117,16 +130,18 @@ class QProcessThread(QThread):
                     print("out of bounds")
                 self.sig.emit(int((counter) / count* 100))
 
-            red = np.array(self.profiles)
+            red = np.array(current_profile)
             red_mean = np.mean(red, axis=0)
-            self.fit.fit_data(red_mean, self.px_size, self.sampling, i, self.path, c=color)
+            self.fit.fit_data(red_mean, self.px_size, self.sampling, i, self.path, c=color, n_profiles=red.shape[0])
             #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
         self.images_RGBA.append(self.image_RGBA)
         cv2.imshow("asdf", self.image_RGBA)
         #self.images_RGB.append(line_profiles_raw)
 
     def run(self,): #todo: don't plot in main thread
-        # distance transform threshold candidates
+        """
+        Start computation and run thread
+        """
         try:
             for i in range(self.image_stack.shape[1]):
                 self._z = i
