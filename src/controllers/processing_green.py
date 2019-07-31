@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
 from PyQt5.QtCore import QThread,pyqtSignal
 #import numba
 import tifffile
@@ -17,16 +16,17 @@ class QProcessThread(QThread):
     Extending the QThread class keeps the GUI running while the evaluation runs in the background.
     """
     sig = pyqtSignal(int)
+    sig_plot_data = pyqtSignal(np.ndarray, int, int, str, tuple, int)
     done = pyqtSignal()
     def __init__(self, parent=None):
         super(QProcessThread, self).__init__(parent)
         self.upper_lim = 800
         self.lower_lim = 400
-        self.blur = 40
+        self.blur = 20
         self._distance_transform_th = 0.4#0.85
-        self.intensity_threshold = 80
-        self.fit = fit_gaussian()
+        self._intensity_threshold = 1
         self.colormap = cm.gist_ncar
+        self.spline_parameter = 1.0
 
 
 
@@ -71,14 +71,13 @@ class QProcessThread(QThread):
 
         """
         self.current_image = self.image_stack[1,slice].astype(np.uint16)*10
-        self.image = np.clip(self.image_stack[1,slice]*200/self.intensity_threshold, 0, 255).astype(np.uint8)
+        self.image = np.clip(self.image_stack[1,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
 
-        self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
-        self.candidate_indices = np.zeros((1))
+        #self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
+        #self.candidate_indices = np.zeros((1))
         self.image_RGBA = np.zeros((self.current_image.shape[0],self.current_image.shape[1],4)).astype(np.uint16)#cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGBA).astype(np.uint16)*200
         # spline fit skeletonized image
-        self.gradient_table,self.shapes = compute_line_orientation(self.image, self.blur)
-
+        self.gradient_table,self.shapes = compute_line_orientation(self.image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
 
 
     def _show_profiles(self):
@@ -95,9 +94,10 @@ class QProcessThread(QThread):
                 counter+=1
 
                 points = self.gradient_table[counter,0:2]
+                #points = self.gradient_table[counter, 4:6]
                 gradients = self.gradient_table[counter,2:4]
                 #for i in range(points.shape[0]):
-                print(counter)
+                #print(counter)
 
                 k, l = points[0],points[1]
                 gradient = np.arctan(gradients[1]/gradients[0])+np.pi/2
@@ -105,7 +105,7 @@ class QProcessThread(QThread):
                 x_i = -30 * np.cos(gradient)
                 y_i = -30 * np.sin(gradient)
                 start = [k - x_i, l - y_i]
-                end = [k +   x_i, l +  y_i]
+                end = [k + x_i, l + y_i]
                 num = np.sqrt(x_i ** 2 + y_i ** 2)
                 profile = line_profile(self.current_image, start, end, px_size=self.px_size, sampling=self.sampling)
                 try:
@@ -122,17 +122,18 @@ class QProcessThread(QThread):
                 self.profiles.append(profile)
                 current_profile.append(profile)
 
-
                 x, y = np.linspace(k - x_i, k +  x_i, 3*num), np.linspace(l - y_i, l + y_i, 3*num)
                 if x.min()>0 and y.min()>0 and x.max()<self.image_RGBA.shape[0] and y.max()< self.image_RGBA.shape[1]:
-                    self.image_RGBA[x.astype(np.int32), y.astype(np.int32)] = np.array([color[0],color[1], color[2],color[3]])*50000
+                    self.image_RGBA[x.astype(np.int32), y.astype(np.int32)] = np.array([color[0],color[1], color[2], color[3]])*50000
                 else:
                     print("out of bounds")
                 self.sig.emit(int((counter) / count* 100))
 
             red = np.array(current_profile)
             red_mean = np.mean(red, axis=0)
-            self.fit.fit_data(red_mean, self.px_size, self.sampling, i, self.path, c=color, n_profiles=red.shape[0])
+            np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
+            self.sig_plot_data.emit(red_mean, 30 * self.px_size * 100 * self.sampling+(50*self.px_size*100), i, self.path,
+                             color, red.shape[0])
             #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
         self.images_RGBA.append(self.image_RGBA)
         cv2.imshow("asdf", self.image_RGBA)
@@ -166,14 +167,15 @@ class QProcessThread(QThread):
             red = np.array(self.profiles)
             red_mean = np.mean(red, axis=0)
             np.savetxt(self.path + r"\red_mean.txt", red_mean)
-            self.fit.fit_data(red_mean, self.px_size, self.sampling, 9999, self.path)
-            plt.plot(red_mean,"r")
-            plt.show()
+            self.sig_plot_data.emit(red_mean, 30 * self.px_size * 100 * self.sampling+(50*self.px_size*100), 9999, self.path,
+                                    (1.0, 0.0, 0.0, 1.0), red.shape[0])
+
             np.savetxt(self.path+r"\red.txt",red)
         except:
             raise
         finally:
             self.done.emit()
+            self.exit()
 
 
 
@@ -184,3 +186,11 @@ class QProcessThread(QThread):
     @distance_transform_th.setter
     def distance_transform_th(self, value):
         self._distance_transform_th = value
+
+    @property
+    def intensity_threshold(self):
+        return self._intensity_threshold
+
+    @intensity_threshold.setter
+    def intensity_threshold(self, value):
+        self._intensity_threshold = np.exp(value)

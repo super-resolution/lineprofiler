@@ -6,7 +6,7 @@ block_cipher = None
 
 
 a = Analysis(['src\\main.py'],
-             pathex=['C:\\Users\\biophys\\PycharmProjects\\Fabi', r'C:\dev\WinPython-64bit-3.6.3.0Qt5\python-3.6.3.amd64'],
+             pathex=['C:\\Users\\biophys\\PycharmProjects\\Fabi\\src', r'C:\dev\WinPython-64bit-3.6.3.0Qt5\python-3.6.3.amd64'],
              binaries=[],
              datas=[],
              hiddenimports=['pyexpat','pywt._extensions._cwt','sklearn.neighbors.typedefs'],

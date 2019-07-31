@@ -131,15 +131,15 @@ class ImageSIM(MicroscopeImage):
                                     print("Found Color Channels")
                                     axes.append("Channels")
                                     lengths.append(tag.split("=")[-1])
-                for i,axe in enumerate(axes):
-                    if "X" in axe:
-                        self.metaData["ShapeSizeX"] = int(lengths[i])
-                    if "Y" in axe:
-                        self.metaData["ShapeSizeX"] = int(lengths[i])
-                    if "Channel" in axe:
-                        self.metaData["ShapeSizeC"] = int(lengths[i])
-                    if "Slices" in axe:
-                        self.metaData["ShapeSizeZ"] = int(lengths[i])
+                # for i,axe in enumerate(axes):
+                #     if "X" in axe:
+                #         self.metaData["ShapeSizeX"] = int(lengths[i])
+                #     if "Y" in axe:
+                #         self.metaData["ShapeSizeX"] = int(lengths[i])
+                #     if "Channel" in axe:
+                #         self.metaData["ShapeSizeC"] = int(lengths[i])
+                #     if "Slices" in axe:
+                #         self.metaData["ShapeSizeZ"] = int(lengths[i])
 
 
         #Read Lsm Files.
@@ -192,6 +192,14 @@ class ImageSIM(MicroscopeImage):
             self.metaData['SizeY'] = calibration_px
 
             new_data[1,0] = self.data
+            self.data = new_data
+        if len(self.data.shape) == 3:
+            new_data = np.zeros((3,1,self.data.shape[-2], self.data.shape[-1]))
+            self.metaData['SizeX'] = calibration_px
+            self.metaData['SizeY'] = calibration_px
+
+            for i in range(3):
+                new_data[i,0] = self.data[i]
             self.data = new_data
         # #Bring all formats in the same shape.
         for i,n in enumerate(self.data.shape):

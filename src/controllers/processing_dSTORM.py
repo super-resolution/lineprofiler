@@ -161,9 +161,9 @@ class QProcessThread(QThread):
 
     #@staticmethod
     def _calc_distance(self, profile):
-        split1 = profile[:43*self.sampling]
-        split2 = profile[43*self.sampling:]
-        distance= (split2.argmax() + 43*self.sampling) - split1.argmax()
+        split1 = profile[:profile.shape[0]/2]
+        split2 = profile[profile.shape[0]/2:]
+        distance= (split2.argmax() + profile.shape[0]/2) - split1.argmax()
         #print("distance is:", distance)
         return split1.argmax()+distance/2,distance
 

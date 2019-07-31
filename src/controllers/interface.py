@@ -1,24 +1,68 @@
 
 from controllers.display import *
-from controllers.processing_green import *
+from controllers import processing_SNC
+from controllers import processing_green
+from controllers.utility import *
+from controllers.fitter import *
 from PyQt5 import QtCore
 
 class Interface():
     def __init__(self, main_window):
-        self.current_image = []
+        self.current_image = None
         self.main_window = main_window
         self.display = Display(self)
         self.main_window.viewer_container_layout.addWidget(self.display.widget)
-        self.current_processing_thread = QProcessThread()
         self.intensity_threshold = 30
-        self.pixel_size = 0.01
+        self.pixel_size = self.main_window.spinBox_px_size.value()
+        self.fitter = Fit()
+        self.current_spline = None
+        self.set_operation_mode(self.main_window.comboBox_operation_mode.currentText())
+        self.checkbox_values_changed()
+
+
+    def start_thread(self):
+        self.current_processing_thread.start()
+
+    def fit_data(self, data, center, i, path, color, size):
+        self.fitter.fit_data(data, center=center, nth_line=i, path=path,
+                             c=color, n_profiles=size)
 
     def set_channel_color(self):
-        a=0
+        pass
 
     #@QtCore.pyqtSlot(float)
-    def set_process_distance_th(self, value):
-        self.current_processing_thread.distance_transform_th = value
+    def set_operation_mode(self, value):
+        if value == "Microtuboli":
+            self.current_processing_thread = processing_green.QProcessThread()
+            self.main_window.checkBox_multi_cylidner_projection.setEnabled(True)
+            self.main_window.checkBox_multi_cylidner_projection.setChecked(True)
+
+            self.main_window.checkBox_cylinder_projection.setEnabled(True)
+            self.main_window.checkBox_cylinder_projection.setChecked(True)
+
+            self.main_window.doubleSpinBox_expansion_factor.setEnabled(True)
+            self.main_window.spinBox_lower_limit.setEnabled(False)
+            self.main_window.spinBox_upper_limit.setEnabled(False)
+            self.main_window.spinBox_px_size.setValue(0.01)
+
+        elif value == "SNC":
+            self.current_processing_thread = processing_SNC.QProcessThread()
+            self.main_window.checkBox_multi_cylidner_projection.setEnabled(False)
+            self.main_window.checkBox_multi_cylidner_projection.setChecked(False)
+
+            self.main_window.checkBox_cylinder_projection.setEnabled(False)
+            self.main_window.checkBox_cylinder_projection.setChecked(False)
+
+            self.main_window.doubleSpinBox_expansion_factor.setEnabled(False)
+            self.main_window.spinBox_lower_limit.setEnabled(True)
+            self.main_window.spinBox_upper_limit.setEnabled(True)
+            self.main_window.spinBox_px_size.setValue(0.032)
+
+        self.current_processing_thread.sig_plot_data.connect(self.fit_data)
+        if self.current_image is not None:
+            self.push_image_to_thread()
+
+
 
     #@QtCore.pyqtSlot(int)
     def set_process_blur(self, value):
@@ -44,11 +88,29 @@ class Interface():
 
     def slider_threshold_changed(self, th):
         self.current_processing_thread.intensity_threshold = th
-        self.intensity_threshold = th
+        self.display.intensity_threshold = th
         try:
             self.display.show_image()
         except:
             ValueError("No image")
+
+    def spline_parameter_changed(self, value):
+        self.current_processing_thread.spline_parameter = value
+
+    def expansion_factor_changed(self, value):
+        self.fitter.expansion = value
+
+    def checkbox_values_changed(self):
+        functions = []
+        for box in self.main_window.plot_parameters:
+            if box.isChecked():
+                functions.append(box.text().lower())
+        if len(functions)==0:
+            raise ValueError("Select minimum one checkbox")
+        self.fitter.fit_functions = functions
+
+    def push_image_to_thread(self):
+        self.current_processing_thread.set_data(self.current_image.data, self.current_image.metaData["SizeX"], self.current_image.file_path)
 
     def show_image(self, image):
         if image[0].isParsingNeeded:
@@ -60,7 +122,7 @@ class Interface():
             slider = getattr(self.main_window, "slider_channel" + str(i) + "_slice")
             slider.setMaximum(self.current_image.metaData["ShapeSizeZ"]-1)
         print(self.main_window.checkBox_channel0.isCheckable())
-        self.current_processing_thread.set_data(self.current_image.data, self.current_image.metaData["SizeX"], self.current_image.file_path)
+        self.push_image_to_thread()
 
     def update_image(self, channel, value):
         self.current_image.index = (channel, value)
