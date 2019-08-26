@@ -83,6 +83,7 @@ class Fit:
         self.expansion = 1
 
 
+
     def fit_data(self, data, center, nth_line=0, path=None, c=(1.0,0.0,0.0,1.0), n_profiles=0):
         """
         Fit given data to functions in fit_functions. Creates a folder for each given function in "path". A plot of

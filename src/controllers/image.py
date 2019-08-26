@@ -98,7 +98,7 @@ class ImageSIM(MicroscopeImage):
         elif self.extend == '.tif' or self.extend == '.tiff':
             with tifffile.TiffFile(self.file_path) as tif:
                 #print(tif.imagej_metadata)
-                self.data = tif.asarray()#np.moveaxis(tif.asarray(),0,1)
+                self.data = tif.asarray()#[...,0]#np.moveaxis(tif.asarray(),0,1)
 
                 #self.data = np.rollaxis(self.data,0,1)
                 #self.data = np.rollaxis(self.data,2,0)
@@ -198,7 +198,7 @@ class ImageSIM(MicroscopeImage):
             self.metaData['SizeX'] = calibration_px
             self.metaData['SizeY'] = calibration_px
 
-            for i in range(3):
+            for i in range(self.data.shape[0]):
                 new_data[i,0] = self.data[i]
             self.data = new_data
         # #Bring all formats in the same shape.

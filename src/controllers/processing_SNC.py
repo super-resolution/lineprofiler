@@ -1,65 +1,22 @@
 import cv2
 import numpy as np
-import scipy
-from PyQt5.QtCore import QThread,pyqtSignal
+
 #import numba
 import tifffile
-import os
 from controllers.utility import *
-from matplotlib import cm
+from controllers.processing import QSuperThread
 
 
-
-class QProcessThread(QThread):
+class QProcessThread(QSuperThread):
     """
     Processing thread to compute distances between SNCs in a given SIM image.
     Extending the QThread class keeps the GUI running while the evaluation runs in the background.
     """
-    sig = pyqtSignal(int)
-    sig_plot_data = pyqtSignal(np.ndarray, int, int, str, tuple, int)
-    done = pyqtSignal()
     def __init__(self, parent=None):
         super(QProcessThread, self).__init__(parent)
         self.upper_lim = 800
         self.lower_lim = 400
-        self.blur = 20
-        self._distance_transform_th = 0.4#0.85
-        self._intensity_threshold = 1
-        self.colormap = cm.gist_ncar
-        self.spline_parameter = 1.0
-        self.distance_to_center = 700
-
-
-
-    def set_data(self, image_stack, px_size,  f_name):
-        """
-        Set data for processing
-
-        Parameters
-        ----------
-        image_stack: ndarray
-            Ndimage of shape (C,Z,X,Y)
-        px_size: float
-            Pixel size [micro meter]
-        f_name: str
-            File name to save processed data to.
-
-        """
-        self.image_stack = image_stack[0:3]
-        self.results = np.zeros((self.image_stack.shape[1],2))
-        self.px_size = px_size
-        self.profiles = []
-        self.profiles_green = []
-        self.profiles_blue = []
-        self.mean_distance = []
-        self.distances = []
-        self.images_RGBA = []
-        self.sampling = 10
-        path = os.path.dirname(os.getcwd()) + r"\data\\" + os.path.splitext(os.path.basename(f_name))[0]
-        if not os.path.exists(path):
-            os.makedirs(path)
-        self.path = path
-
+        self.distance_to_center = 900
 
     def _set_image(self, slice):
         """
@@ -79,7 +36,7 @@ class QProcessThread(QThread):
         #self.candidate_indices = np.zeros((1))
         self.image_RGBA = np.zeros((self.current_image.shape[0],self.current_image.shape[1],4)).astype(np.uint16)#cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGBA).astype(np.uint16)*200
         # spline fit skeletonized image
-        self.gradient_table,self.shapes = compute_line_orientation(self.image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
+        self.gradient_table,self.shapes = compute_line_orientation(self.image, self._blur, expansion=self._spline_parameter, expansion2=self._spline_parameter)
         self._fillhole_image()
 
     def _fillhole_image(self):
@@ -102,15 +59,19 @@ class QProcessThread(QThread):
         indices = []
         index = 0
         to_cut = 0
+        running_index = 0
         for i in range(self.gradient_table.shape[0]):
+            running_index += 1
             shape = self.shapes[index]
             if self.im_floodfill_inv[spline_positions[i,0].astype(np.uint32), spline_positions[i,1].astype(np.uint32)]==0:
                 indices.append(i)
                 to_cut +=1
-            if i == shape-1:
+            if running_index == shape:
                 self.shapes[index] -= to_cut
                 to_cut=0
                 index +=1
+                running_index = 0
+
         self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
 
         spline_positions = self.gradient_table[:, 0:2]
@@ -145,8 +106,8 @@ class QProcessThread(QThread):
                 k, l = points[0],points[1]
                 gradient = np.arctan(gradients[1]/gradients[0])+np.pi/2
 
-                x_i = -30 * np.cos(gradient)
-                y_i = -30 * np.sin(gradient)
+                x_i = -40 * np.cos(gradient)
+                y_i = -40 * np.sin(gradient)
                 start = [k - x_i, l - y_i]
                 end = [k + x_i, l + y_i]
                 num = np.sqrt(x_i ** 2 + y_i ** 2)
@@ -154,7 +115,7 @@ class QProcessThread(QThread):
                 try:
                     print(np.argmax(profile))
                     #x = np.where(profile>0)[0][0]
-                    profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
+                    #profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
                 except:
                     continue
                 if profile.shape[0]<499*self.px_size*100:
@@ -165,8 +126,8 @@ class QProcessThread(QThread):
                 if distance < self.lower_lim or distance> self.upper_lim:
                     continue
 
-                profile = profile[int(center-self.dis_to_center):int(center+self.dis_to_center)]
-                if profile.shape[0] != 1400:
+                profile = profile[int(center-self.distance_to_center):int(center+self.distance_to_center)]
+                if profile.shape[0] != 2*self.distance_to_center:
                     continue
 
                 self.profiles.append(profile)
@@ -182,7 +143,7 @@ class QProcessThread(QThread):
             red = np.array(current_profile)
             red_mean = np.mean(red, axis=0)
             np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
-            self.sig_plot_data.emit(red_mean, self.dis_to_center, i, self.path,
+            self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
                              color, red.shape[0])
 
 
@@ -225,21 +186,3 @@ class QProcessThread(QThread):
         finally:
             self.done.emit()
             self.exit()
-
-
-
-    @property
-    def distance_transform_th(self):
-        return self._distance_transform_th
-
-    @distance_transform_th.setter
-    def distance_transform_th(self, value):
-        self._distance_transform_th = value
-
-    @property
-    def intensity_threshold(self):
-        return self._intensity_threshold
-
-    @intensity_threshold.setter
-    def intensity_threshold(self, value):
-        self._intensity_threshold = np.exp(value)

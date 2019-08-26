@@ -45,8 +45,8 @@ class MainWindow(Ui_MainWindow):
             self.status_bar.showMessage("Line Profiler profiling lines"),
             self.pushButton_process.setEnabled(False))
         )
-        self.spinBox_px_size.valueChanged.connect(self.interface.set_px_size)
-        self.spinBox_gaussian_blur.valueChanged.connect(self.interface.set_process_blur)
+        #self.spinBox_px_size.valueChanged.connect(self.interface.set_px_size)
+        #self.spinBox_gaussian_blur.valueChanged.connect(self.interface.set_process_blur)
         self.comboBox_operation_mode.currentTextChanged.connect(self.interface.set_operation_mode)
 
         self.spinBox_lower_limit.valueChanged.connect(self.interface.set_process_lower_lim)
@@ -54,20 +54,20 @@ class MainWindow(Ui_MainWindow):
 
 
         self.horizontalSlider_intensity_threshold.valueChanged.connect(
-            lambda state, item=self.horizontalSlider_intensity_threshold,: (self.interface.slider_threshold_changed(item.value()/10),
-            self.doubleSpinBox_intensity_threshold.setValue(item.value()/10))
+            lambda state, item=self.horizontalSlider_intensity_threshold,:
+            self.doubleSpinBox_intensity_threshold.setValue(item.value()/10)
         )
         self.doubleSpinBox_intensity_threshold.valueChanged.connect(
-            lambda state, item =self.doubleSpinBox_intensity_threshold : (self.horizontalSlider_intensity_threshold.setValue(int(item.value()*10)),
-                                                                          self.interface.slider_threshold_changed(item.value()))
+            lambda state, item =self.doubleSpinBox_intensity_threshold :
+            self.horizontalSlider_intensity_threshold.setValue(int(item.value()*10))
 
         )
         self.doubleSpinBox_expansion_factor.valueChanged.connect(
             self.interface.expansion_factor_changed
         )
-        self.doubleSpinBox_spline_parameter.valueChanged.connect(
-            self.interface.spline_parameter_changed
-        )
+        #self.doubleSpinBox_spline_parameter.valueChanged.connect(
+        #    self.interface.spline_parameter_changed
+        #)
         for i in (self.plot_parameters):
             i.stateChanged.connect(lambda: self.interface.checkbox_values_changed())
         for i in range(4):
@@ -98,6 +98,7 @@ class MainWindow(Ui_MainWindow):
 
 
     def _open_files(self):
+        image = None
         file_dialog = QtWidgets.QFileDialog()
         title = "Open SIM files"
         # extensions = "Confocal images (*.jpg; *.png; *.tif;);;Confocal stacks (*.ics)"
@@ -108,7 +109,8 @@ class MainWindow(Ui_MainWindow):
                                                             self.working_directory, extensions)[0]
         for file_ in files_list:
             image = ImageSIM(file_)
-        self.image_list.addItem(image)
+        if image is not None:
+            self.image_list.addItem(image)
 
     def _close_all(self):
         image_list = self.image_list
