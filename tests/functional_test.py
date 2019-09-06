@@ -13,6 +13,7 @@ class FunctionalTestLineProfiler(unittest.TestCase):
 
         self.mainWindow.init_component(qtWindow)
         qtWindow.show()
+
     def test_open_file(self):
         pass
 
@@ -45,16 +46,21 @@ class FunctionalTestLineProfiler(unittest.TestCase):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(0)
         self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "Microtuboli", msg="Wrong combo box Text")
         self.processing_configurations()
+        print("Microtuboli Mode successfully tested")
 
     def test_snc_options(self):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(1)
         self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SNC", msg="Wrong combo box Text")
         self.processing_configurations()
+        print("SNC Mode successfully tested")
+
 
     def test_snc_one_channel(self):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(2)
         self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SNC one channel", msg="Wrong combo box Text")
         self.processing_configurations()
+        print("SNC one channel Mode successfully tested")
+
 
     def test_plot_options(self):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(0)
@@ -68,8 +74,10 @@ class FunctionalTestLineProfiler(unittest.TestCase):
             if box.isChecked():
                 functions.append(box.text().lower())
         self.assertEqual(self.mainWindow.interface.fitter.fit_functions, functions)
-        self.tearDown()
+        print("Plot options successfully tested")
+        #self.end()
 
-
-    def tearDown(self):
+    def end(self):
         self.qtApp.exec_()
+
+        self.qtApp.quit()

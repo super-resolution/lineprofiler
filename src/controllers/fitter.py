@@ -5,6 +5,8 @@ import matplotlib
 import numpy as np
 import os
 from scipy import ndimage
+from collections import abc,namedtuple
+from controllers.fit_function_factory import *
 
 
 class Fit:
@@ -79,10 +81,26 @@ class Fit:
 
     """
     def __init__(self):
-        self.fit_functions = {"gaussian", "bigaussian", "trigaussian", "cylinder_projection", "multi_cylinder_projection"}
+        #self._fit_functions = {"gaussian", "bigaussian", "trigaussian", "cylinder_projection", "multi_cylinder_projection"}
         self.expansion = 1
 
+    @property
+    def fit_function(self):
+        return fit_functions
 
+    @fit_function.setter
+    def fit_function(self, value):
+        if isinstance(value, abc.Iterable):
+            unique_val = set(value)
+            #self._fit_functions = unique_val
+        else:
+            raise ValueError("Fit functions must be of iterable type")
+        for func in unique_val:
+            #if func not in fit_functions:
+            register(globals()[func])
+        if len(fit_functions.keys()-unique_val) !=0:
+            fit_functions.pop(*(fit_functions.keys()-unique_val))
+        #fit_functions.remove(fit_functions-unique_val)
 
     def fit_data(self, data, center, nth_line=0, path=None, c=(1.0,0.0,0.0,1.0), n_profiles=0):
         """
@@ -109,62 +127,73 @@ class Fit:
         x_aligned = x-center
 
 
-        for z,function in enumerate(self.fit_functions):
+        for name,func in fit_functions.items():
             fig = plt.figure()
             ax1 = fig.add_axes((0.1, 0.2, 0.8, 0.7))
             ax1.plot(x_aligned, data / data.max(), c=c, label="averaged line profile")
 
-            fit = getattr(self, "fit_data_to_"+function)
-            func = getattr(self, function)
-            optim, loss, fit_parameters = fit(x, data)
-            txt = function + "fit parameters: \n" + f"Number of profiles: {n_profiles} \n"
-            for i,parameter in enumerate(fit_parameters):
+            fit = getattr(self, "fit_data_to_"+name)
+            #func = getattr(self, name)
+            optim, loss = self.fit_data_to(func, x, data)
+            txt = name + "fit parameters: \n" + f"Number of profiles: {n_profiles} \n"
+            for i,parameter in enumerate(func.fit_parameters):
                 txt += parameter + f"{np.abs(optim[i]):.2f}" + "\n"
-            ax1.plot(x_aligned, func(x, *optim)/data.max() ,
-                    lw=1, c="r", ls='--', label=function)
+            ax1.plot(x_aligned, func.fit(x, *optim)/data.max() ,
+                    lw=1, c="r", ls='--', label=name)
             ax1.legend(loc='best')
             ax1.set_ylabel("normed intensity [a.u.]")
             ax1.set_xlabel("distance [nm]")
             fig.text(0.5, 0.01, txt, ha='center')
             fig.set_size_inches(7, 12, forward=True)
             if path is not None:
-                path_new = path+ r"\\"+function
+                path_new = path+ r"\\"+name
                 if not os.path.exists(path_new):
                     os.makedirs(path_new)
                 plt.savefig(path_new +rf'\profile_{nth_line}.png')
             plt.close(fig)
-        #
-        # ax1.plot(x_aligned, self.gaussian(x, optim[0],optim[1],optim[2],optim[-1])/data.max(),
-        #          lw=1, c='r', ls='--', label='bi-Gaussian fit')
-        # ax1.plot(x_aligned, self.gaussian(x, optim[3], optim[4], optim[5], optim[-1])/data.max(),
-        #          lw=1, c='r', ls='--', )
-        # #plot data
-# coordinate space perpendicular to spline fit
-
-        # optim_print = np.around(optim, decimals=2)
-
-        # txt = f"Cylinder-projection fit parameters: \n" \
-        #       f"Number of profiles: {n_profiles} \n" \
-        #       f"Inner Radius: {np.abs(optim_print[0]):.2f} \n" \
-        #       f"Outer Radius: {np.abs(optim_print[1]):.2f} \n" \
-        #       f"Center: {optim_print[2]:.2f}\n" \
-        #       f"Sigma: {optim_print[3]:.2f}\n" \
-        #       f"Intensity: {optim_print[4]:.2f}\n" \
-        #       f"{optim_print[6]:.2f}"
-
-        #
-        # txt = f"Bi-gaussian fit parameters: \n" \
-        #       f"Number of profiles: {n_profiles} \n" \
-        #       f"Peak distance: {np.abs(optim_print[2]-optim_print[5]):.2f} \n" \
-        #       f"Center: {optim_print[2]:.2f}, {optim_print[5]:.2f} \n" \
-        #       f"Width: {optim_print[1]:.2f}, {optim_print[4]:.2f} \n" \
-        #       f"Intensity: {optim_print[0]:.2f}, {optim_print[3]:.2f}"
-
-
         return loss
-        #plt.show()
 
-    def fit_data_to_gaussian(self, x, data):
+    def fit_data_to(self, func, x, data):
+        """
+        Fit data to given func using least square optimization. Compute and  print chi2.
+        Return the optimal parameters found for two gaussians.
+
+        Parameters
+        ----------
+        data: ndarray
+            Given data (1d)
+
+        Returns
+        -------
+        optim2: tuple
+            Optimal parameters
+        """
+        param = {}
+        param['maximas'] = self.find_maximas(data)
+        param['height'] = data.max()
+        param['CM'] = np.average(x, weights=data)
+        param['expansion'] = self.expansion
+        param['width'] = data.shape[0]
+        bounds = func.bounds(param)
+        guess = func.guess(param)
+
+        # calculate error by squared distance to data
+        errfunc = lambda p, x, y: (func.fit(x, *p) - y) ** 2
+
+
+        result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
+        optim = result.x
+
+        chi1 = lambda p, x, y: ((func.fit(x, *p) - y) ** 2)/func.fit(x, *p)
+
+
+        err = chi1(optim, x, data).sum()
+
+
+        print(f"{func.__name__} chi2 {err}, cost {result.cost}")
+        return optim, [err, result.cost]
+
+    def fit_data_to_gaussian(self, func, x, data):
         """
         Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
         Return the optimal parameters found for two gaussians.
@@ -187,13 +216,13 @@ class Fit:
                             [0,0.1]]).T
 
         # calculate error by squared distance to data
-        errfunc = lambda p, x, y: (self.gaussian(x, *p) - y) ** 2
+        errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
 
 
         result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
         optim = result.x
 
-        chi1 = lambda p, x, y: ((self.gaussian(x, *p) - y) ** 2)/self.gaussian(x, *p)
+        chi1 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
 
 
         err = chi1(optim, x, data).sum()
@@ -202,7 +231,7 @@ class Fit:
         print(f"one gaussian chi2 {err}, cost {result.cost}")
         return optim, [err, result.cost], fit_parameters
 
-    def fit_data_to_bigaussian(self, x, data):
+    def fit_data_to_bigaussian(self, func, x, data):
         """
         Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
         Return the optimal parameters found for two gaussians.
@@ -228,19 +257,19 @@ class Fit:
                             [0, data.max()+0.1], [0, np.inf], [0,data.shape[0]],[0,0.1]]).T
 
         # calculate error by squared distance to data
-        errfunc2 = lambda p, x, y: (self.bigaussian(x, *p) - y) ** 2
+        errfunc2 = lambda p, x, y: (func(x, *p) - y) ** 2
 
         result2 = optimize.least_squares(errfunc2, guess2[:], bounds=bounds2, args=(x, data))
         optim2 = result2.x
 
-        chi2 = lambda p, x, y: ((self.bigaussian(x, *p) - y) ** 2)/self.bigaussian(x, *p)
+        chi2 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
 
         err2 = chi2(optim2, x, data).sum()
 
         print(f"two gaussian chi2 {err2}, cost {result2.cost} \n")
         return optim2, [err2, result2.cost], fit_parameters
 
-    def fit_data_to_trigaussian(self, x, data):
+    def fit_data_to_trigaussian(self, func, x, data):
         """
         Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
         Return the optimal parameters found for two gaussians.
@@ -269,19 +298,19 @@ class Fit:
                             [0, data.max()+0.1], [0, np.inf], [0, data.shape[0]],[0,0.1]]).T
 
         # calculate error by squared distance to data
-        errfunc3 = lambda p, x, y: (self.trigaussian(x, *p) - y) ** 2
+        errfunc3 = lambda p, x, y: (func(x, *p) - y) ** 2
 
         result3 = optimize.least_squares(errfunc3, guess3[:], bounds=bounds3, args=(x, data))
         optim3 = result3.x
 
-        chi3 = lambda p, x, y: ((self.trigaussian(x, *p) - y) ** 2)/self.trigaussian(x, *p)
+        chi3 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
 
         err3 = chi3(optim3, x, data).sum()
 
         print(f"three gaussian chi2 {err3}, cost {result3.cost}")
         return optim3, [err3, result3.cost], fit_parameters
 
-    def fit_data_to_cylinder_projection(self, x, data):
+    def fit_data_to_cylinder_projection(self, func, x, data):
         """
         Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
         Return the optimal parameters.
@@ -306,7 +335,7 @@ class Fit:
         bounds = np.array([[0, np.inf], [CM-10, CM+10],
                             [8*expansion, 40*expansion], [15*expansion, 60*expansion], [0,0.01],[9,11]]).T
         # calculate error by squared distance to data
-        errfunc = lambda p, x, y: (self.cylinder_projection(x, *p) - y) ** 2
+        errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
 
         result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
         guess2 = guess
@@ -317,7 +346,7 @@ class Fit:
             print("smaller max width used")
             optim = result2.x
 
-        chi = lambda p, x, y: ((self.cylinder_projection(x, *p) - y) ** 2) / self.cylinder_projection(x, *p)
+        chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)
 
         err = chi(optim, x, data).sum()
         print(optim[-1])
@@ -361,109 +390,7 @@ class Fit:
                 print("zero exception")
         return values
 
-    @staticmethod
-    def gaussian(x, height, width, center, noise_lvl):
-        """
-        Simple guassian function.
-
-        Parameters
-        ----------
-        x: ndarray
-            Coordinate space in x direction
-        height: float
-            Maximum height of gaussian function
-        center: float
-            Center of gaussian funtcion
-        width: float
-            Width of gaussian function
-        noise_lvl: float
-            y offset (background lvl)
-
-        Returns
-        -------
-        gaussian: ndarray
-            (nx1) array of y values corresponding to the given parameters
-
-        """
-        return height * np.exp(-(x - center) ** 2 / (2 * width ** 2)) + noise_lvl
-
-    def bigaussian(self, x, h1, w1, c1, h2, w2, c2, noise_lvl):
-        """
-        Sum of two gaussian functions.
-
-        Parameters
-        ----------
-        See :func: `gaussian`
-
-
-        Returns
-        -------
-        gaussian: ndarray
-            (nx1) array of y values corresponding to the given parameters
-        """
-        return (self.gaussian(x, h1, w1, c1, 0) +
-                self.gaussian(x, h2, w2, c2, 0) + noise_lvl)
-
-    def trigaussian(self, x, h1, w1, c1, h2, w2, c2, h3, w3, c3, noise_lvl):
-        """
-        Sum of three gaussian function.
-
-        Parameters
-        ----------
-        See :func: `gaussian`
-
-
-        Returns
-        -------
-        gaussian: ndarray
-            (nx1) array of y values corresponding to the given parameters
-        """
-        return (self.gaussian(x, h1, w1, c1, 0) +
-                self.gaussian(x, h2, w2, c2, 0) +
-                self.gaussian(x, h3, w3, c3, 0) + noise_lvl)
-
-    @staticmethod
-    def cylinder_projection(x, intensity, center, r1, r2, offset, blur):
-        """
-        Intensity projection of a cylinder
-
-        Parameters
-        ----------
-        x: ndarray
-            Coordinate space in x direction
-        center: float
-            Center coordinate of cylinder function
-        intensity: float
-            Maximum intensity of cylinder projection
-        r1: float
-            Inner radius
-        r2: float
-            Outer radius
-        blur: flaot
-            Convolve cylinder projection with gaussian blur of size "blur"
-
-        Returns
-        -------
-        y: ndarray
-            y values of cylinder function
-        """
-        axis = x
-        axis = axis-int(center)
-        axis = np.abs(axis)
-        y = np.zeros_like(axis)
-        pos1 = np.where(axis<r1)
-        pos2 = np.where(np.logical_and(axis>=r1, axis<r2))
-        y[pos1] = np.sqrt(r2 ** 2 - axis[pos1] ** 2) - np.sqrt(r1 ** 2 - axis[pos1] ** 2)
-        y[pos2] = np.sqrt(r2 ** 2 - axis[pos2] ** 2)
-        y = y/r2
-        y = y*intensity
-        y = y+offset
-        if blur is not None:
-            y = ndimage.gaussian_filter1d(y, sigma=blur)
-        return y
-
-
-    def fit_data_to_multi_cylinder_projection(self, x, data):
+    def fit_data_to_multi_cylinder_projection(self, func, x, data):
         """
         Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
         Return the optimal parameters.
@@ -488,26 +415,148 @@ class Fit:
                             [0, np.inf], [CM-10, CM+10], [self.expansion-0.5, self.expansion+0.5],[0,5], [5,15]]).T
 
         # calculate error by squared distance to data
-        errfunc = lambda p, x, y: (self.multi_cylinder_projection(x, *p) - y) ** 2
+        errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
 
         result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
-        #if result.cost< result2.cost:
         optim = result.x
-        #else:
-        #    print("smaller max width used")
-        #    optim = result2.x
 
-        chi = lambda p, x, y: ((self.multi_cylinder_projection(x, *p) - y) ** 2) / self.multi_cylinder_projection(x, *p)
+
+        chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)
 
         err = chi(optim, x, data).sum()
         print(optim[-1])
 
         print(f"three gaussian chi2 {err}, cost {result.cost}")
         return optim, [err,result.cost], fit_parameters
-
-    def multi_cylinder_projection(self, x, i1, i2, i3, c, expansion, offset, blur):
-        cyl1 = self.cylinder_projection(x, i1, c, 25*expansion/2-8.75*2, 25*expansion/2-8.75, 0, blur)
-        cyl2 = self.cylinder_projection(x, i2, c, 42.5*expansion/2, 42.5*expansion/2+8.75, 0, blur)
-        cyl3 = self.cylinder_projection(x, i3, c, 25*expansion/2+8.75,25*expansion/2+8.75*2, 0, blur)
-
-        return (cyl1+cyl2+cyl3+offset)
+#
+# fit_functions = dict()
+# def register(func):
+#     #print(func.__name__)
+#     if func.__name__ not in fit_functions:
+#         fit_functions[func.__name__] = func
+#     return func
+#
+# @register
+# def gaussian(x, height, width, center, noise_lvl):
+#     """
+#     Simple guassian function.
+#
+#     Parameters
+#     ----------
+#     x: ndarray
+#         Coordinate space in x direction
+#     height: float
+#         Maximum height of gaussian function
+#     center: float
+#         Center of gaussian funtcion
+#     width: float
+#         Width of gaussian function
+#     noise_lvl: float
+#         y offset (background lvl)
+#
+#     Returns
+#     -------
+#     gaussian: ndarray
+#         (nx1) array of y values corresponding to the given parameters
+#
+#     """
+#     return height * np.exp(-(x - center) ** 2 / (2 * width ** 2)) + noise_lvl
+#
+# @register
+# def bigaussian(x, h1, w1, c1, h2, w2, c2, noise_lvl):
+#     """
+#     Sum of two gaussian functions.
+#
+#     Parameters
+#     ----------
+#     See :func: `gaussian`
+#
+#
+#     Returns
+#     -------
+#     gaussian: ndarray
+#         (nx1) array of y values corresponding to the given parameters
+#     """
+#     return (gaussian(x, h1, w1, c1, 0) +
+#             gaussian(x, h2, w2, c2, 0) + noise_lvl)
+#
+# @register
+# def trigaussian(x, h1, w1, c1, h2, w2, c2, h3, w3, c3, noise_lvl):
+#     """
+#     Sum of three gaussian function.
+#
+#     Parameters
+#     ----------
+#     See :func: `gaussian`
+#
+#
+#     Returns
+#     -------
+#     gaussian: ndarray
+#         (nx1) array of y values corresponding to the given parameters
+#     """
+#     return (gaussian(x, h1, w1, c1, 0) +
+#             gaussian(x, h2, w2, c2, 0) +
+#             gaussian(x, h3, w3, c3, 0) + noise_lvl)
+#
+# @register
+# class cylinder_projection():
+#     fit_parameters = ("Intensity cylinder: ", "Center: ", "Inner Radius: ", "Outer Radius: ", "Offset: ", "Blur: ")
+#
+#     @staticmethod
+#     def bounds(CM ,expansion):
+#         return np.array([[0, np.inf], [CM-10, CM+10],
+#                             [8*expansion, 40*expansion], [15*expansion, 60*expansion], [0,0.01],[9,11]]).T
+#
+#     @staticmethod
+#     def guess(height, CM, expansion):
+#         r_multi = expansion/2
+#         return [2 * height, CM, 25 * r_multi + 8.75, 25 * r_multi + 8.75 * 2, 0, 10]
+#
+#     @staticmethod
+#     def fit(x, intensity, center, r1, r2, offset, blur):
+#         """
+#         Intensity projection of a cylinder
+#
+#         Parameters
+#         ----------
+#         x: ndarray
+#             Coordinate space in x direction
+#         center: float
+#             Center coordinate of cylinder function
+#         intensity: float
+#             Maximum intensity of cylinder projection
+#         r1: float
+#             Inner radius
+#         r2: float
+#             Outer radius
+#         blur: flaot
+#             Convolve cylinder projection with gaussian blur of size "blur"
+#
+#         Returns
+#         -------
+#         y: ndarray
+#             y values of cylinder function
+#         """
+#         axis = x
+#         axis = axis-int(center)
+#         axis = np.abs(axis)
+#         y = np.zeros_like(axis)
+#         pos1 = np.where(axis<r1)
+#         pos2 = np.where(np.logical_and(axis>=r1, axis<r2))
+#         y[pos1] = np.sqrt(r2 ** 2 - axis[pos1] ** 2) - np.sqrt(r1 ** 2 - axis[pos1] ** 2)
+#         y[pos2] = np.sqrt(r2 ** 2 - axis[pos2] ** 2)
+#         y = y/r2
+#         y = y*intensity
+#         y = y+offset
+#         if blur is not None:
+#             y = ndimage.gaussian_filter1d(y, sigma=blur)
+#         return y
+#
+# @register
+# def multi_cylinder_projection(x, i1, i2, i3, c, expansion, offset, blur):
+#     cyl1 = cylinder_projection(x, i1, c, 25*expansion/2-8.75*2, 25*expansion/2-8.75, 0, blur)
+#     cyl2 = cylinder_projection(x, i2, c, 42.5*expansion/2, 42.5*expansion/2+8.75, 0, blur)
+#     cyl3 = cylinder_projection(x, i3, c, 25*expansion/2+8.75,25*expansion/2+8.75*2, 0, blur)
+#
+#     return (cyl1+cyl2+cyl3+offset)
