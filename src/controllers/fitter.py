@@ -81,7 +81,6 @@ class Fit:
 
     """
     def __init__(self):
-        #self._fit_functions = {"gaussian", "bigaussian", "trigaussian", "cylinder_projection", "multi_cylinder_projection"}
         self.expansion = 1
 
     @property
@@ -132,7 +131,7 @@ class Fit:
             ax1 = fig.add_axes((0.1, 0.2, 0.8, 0.7))
             ax1.plot(x_aligned, data / data.max(), c=c, label="averaged line profile")
 
-            fit = getattr(self, "fit_data_to_"+name)
+            #fit = getattr(self, "fit_data_to_"+name)
             #func = getattr(self, name)
             optim, loss = self.fit_data_to(func, x, data)
             txt = name + "fit parameters: \n" + f"Number of profiles: {n_profiles} \n"
@@ -193,167 +192,6 @@ class Fit:
         print(f"{func.__name__} chi2 {err}, cost {result.cost}")
         return optim, [err, result.cost]
 
-    def fit_data_to_gaussian(self, func, x, data):
-        """
-        Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
-        Return the optimal parameters found for two gaussians.
-
-        Parameters
-        ----------
-        data: ndarray
-            Given data (1d)
-
-        Returns
-        -------
-        optim2: tuple
-            Optimal parameters
-        """
-        fit_parameters = ("Intensity 1: ","Width 1: ", "Center 1: ", "Offset: ")
-        maximas = self.find_maximas(data)
-        height = data.max()/2
-        guess = [height, 0.5, maximas[0], 0]
-        bounds = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],
-                            [0,0.1]]).T
-
-        # calculate error by squared distance to data
-        errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
-
-
-        result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
-        optim = result.x
-
-        chi1 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
-
-
-        err = chi1(optim, x, data).sum()
-
-
-        print(f"one gaussian chi2 {err}, cost {result.cost}")
-        return optim, [err, result.cost], fit_parameters
-
-    def fit_data_to_bigaussian(self, func, x, data):
-        """
-        Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
-        Return the optimal parameters found for two gaussians.
-
-        Parameters
-        ----------
-        data: ndarray
-            Given data (1d)
-
-        Returns
-        -------
-        optim2: tuple
-            Optimal parameters
-        """
-        fit_parameters = ("Intensity 1: ","Width 1: ", "Center 1: ",
-                          "Intensity 2: ","Width 2: ", "Center 2: ", "Offset: ")
-        maximas = self.find_maximas(data)
-        print(maximas)
-        height = data.max()/2
-        guess2 = [height, 0.5, maximas[0],
-                  height, 0.5, maximas[1],0]
-        bounds2 = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],
-                            [0, data.max()+0.1], [0, np.inf], [0,data.shape[0]],[0,0.1]]).T
-
-        # calculate error by squared distance to data
-        errfunc2 = lambda p, x, y: (func(x, *p) - y) ** 2
-
-        result2 = optimize.least_squares(errfunc2, guess2[:], bounds=bounds2, args=(x, data))
-        optim2 = result2.x
-
-        chi2 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
-
-        err2 = chi2(optim2, x, data).sum()
-
-        print(f"two gaussian chi2 {err2}, cost {result2.cost} \n")
-        return optim2, [err2, result2.cost], fit_parameters
-
-    def fit_data_to_trigaussian(self, func, x, data):
-        """
-        Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
-        Return the optimal parameters found for two gaussians.
-
-        Parameters
-        ----------
-        data: ndarray
-            Given data (1d)
-
-        Returns
-        -------
-        optim2: tuple
-            Optimal parameters
-        """
-        fit_parameters = ("Intensity 1: ","Width 1: ", "Center 1: ",
-                          "Intensity 2: ","Width 2: ", "Center 2: ",
-                          "Intensity 3: ","Width 3: ", "Center 3: ", "Offset: ")
-        maximas = self.find_maximas(data)
-        height = data.max()/2
-
-        guess3 = [height, 0.5, maximas[0],
-                  height, 0.5, maximas[0],
-                  height, 0.5, maximas[0], 0]
-        bounds3 = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],
-                            [0, data.max()+0.1], [0, np.inf], [0,data.shape[0]],
-                            [0, data.max()+0.1], [0, np.inf], [0, data.shape[0]],[0,0.1]]).T
-
-        # calculate error by squared distance to data
-        errfunc3 = lambda p, x, y: (func(x, *p) - y) ** 2
-
-        result3 = optimize.least_squares(errfunc3, guess3[:], bounds=bounds3, args=(x, data))
-        optim3 = result3.x
-
-        chi3 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
-
-        err3 = chi3(optim3, x, data).sum()
-
-        print(f"three gaussian chi2 {err3}, cost {result3.cost}")
-        return optim3, [err3, result3.cost], fit_parameters
-
-    def fit_data_to_cylinder_projection(self, func, x, data):
-        """
-        Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
-        Return the optimal parameters.
-
-        Parameters
-        ----------
-        data: ndarray
-            Given data (1d)
-
-        Returns
-        -------
-        optim: tuple
-            Optimal parameters
-        """
-        fit_parameters = ("Intensity cylinder: ", "Center: ", "Inner Radius: ", "Outer Radius: ", "Offset: ", "Blur: ")
-        #maximas = self.find_maximas(data)
-        CM = np.average(x, weights=data)
-        height = data.max()
-        expansion = self.expansion
-        r_multi = self.expansion/2
-        guess = [2*height, CM, 25*r_multi+8.75, 25*r_multi+8.75*2, 0, 10]
-        bounds = np.array([[0, np.inf], [CM-10, CM+10],
-                            [8*expansion, 40*expansion], [15*expansion, 60*expansion], [0,0.01],[9,11]]).T
-        # calculate error by squared distance to data
-        errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
-
-        result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
-        guess2 = guess
-        result2 = optimize.least_squares(errfunc, guess2[:], bounds=bounds, args=(x, data))
-        if result.cost< result2.cost:
-            optim = result.x
-        else:
-            print("smaller max width used")
-            optim = result2.x
-
-        chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)
-
-        err = chi(optim, x, data).sum()
-        print(optim[-1])
-
-        print(f"three gaussian chi2 {err}, cost {result.cost}")
-        return optim, [err,result.cost], fit_parameters
-
     @staticmethod
     def find_maximas(data, n=3):
         """
@@ -390,44 +228,241 @@ class Fit:
                 print("zero exception")
         return values
 
-    def fit_data_to_multi_cylinder_projection(self, func, x, data):
-        """
-        Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
-        Return the optimal parameters.
-
-        Parameters
-        ----------
-        data: ndarray
-            Given data (1d)
-
-        Returns
-        -------
-        optim: tuple
-            Optimal parameters to fit two gaussians to data
-        """
-        fit_parameters = ("Intensity cylinder 1: ","Intensity cylinder 2: ","Intensity cylinder 3: ","Center: ", "Expansion: ", "Offset: ", "Sigma: ")
-        #maximas = self.find_maximas(data)
-        CM = np.average(x, weights=data)
-        height = data.max()
-
-        guess = [height/2, height/3, height, CM, self.expansion, 0, 10]
-        bounds = np.array([[0, np.inf], [0, np.inf],
-                            [0, np.inf], [CM-10, CM+10], [self.expansion-0.5, self.expansion+0.5],[0,5], [5,15]]).T
-
-        # calculate error by squared distance to data
-        errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
-
-        result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
-        optim = result.x
-
-
-        chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)
-
-        err = chi(optim, x, data).sum()
-        print(optim[-1])
-
-        print(f"three gaussian chi2 {err}, cost {result.cost}")
-        return optim, [err,result.cost], fit_parameters
+    # def fit_data_to_gaussian(self, func, x, data):
+    #     """
+    #     Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
+    #     Return the optimal parameters found for two gaussians.
+    #
+    #     Parameters
+    #     ----------
+    #     data: ndarray
+    #         Given data (1d)
+    #
+    #     Returns
+    #     -------
+    #     optim2: tuple
+    #         Optimal parameters
+    #     """
+    #     fit_parameters = ("Intensity 1: ","Width 1: ", "Center 1: ", "Offset: ")
+    #     maximas = self.find_maximas(data)
+    #     height = data.max()/2
+    #     guess = [height, 0.5, maximas[0], 0]
+    #     bounds = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],
+    #                         [0,0.1]]).T
+    #
+    #     # calculate error by squared distance to data
+    #     errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
+    #
+    #
+    #     result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
+    #     optim = result.x
+    #
+    #     chi1 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
+    #
+    #
+    #     err = chi1(optim, x, data).sum()
+    #
+    #
+    #     print(f"one gaussian chi2 {err}, cost {result.cost}")
+    #     return optim, [err, result.cost], fit_parameters
+    #
+    # def fit_data_to_bigaussian(self, func, x, data):
+    #     """
+    #     Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
+    #     Return the optimal parameters found for two gaussians.
+    #
+    #     Parameters
+    #     ----------
+    #     data: ndarray
+    #         Given data (1d)
+    #
+    #     Returns
+    #     -------
+    #     optim2: tuple
+    #         Optimal parameters
+    #     """
+    #     fit_parameters = ("Intensity 1: ","Width 1: ", "Center 1: ",
+    #                       "Intensity 2: ","Width 2: ", "Center 2: ", "Offset: ")
+    #     maximas = self.find_maximas(data)
+    #     print(maximas)
+    #     height = data.max()/2
+    #     guess2 = [height, 0.5, maximas[0],
+    #               height, 0.5, maximas[1],0]
+    #     bounds2 = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],
+    #                         [0, data.max()+0.1], [0, np.inf], [0,data.shape[0]],[0,0.1]]).T
+    #
+    #     # calculate error by squared distance to data
+    #     errfunc2 = lambda p, x, y: (func(x, *p) - y) ** 2
+    #
+    #     result2 = optimize.least_squares(errfunc2, guess2[:], bounds=bounds2, args=(x, data))
+    #     optim2 = result2.x
+    #
+    #     chi2 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
+    #
+    #     err2 = chi2(optim2, x, data).sum()
+    #
+    #     print(f"two gaussian chi2 {err2}, cost {result2.cost} \n")
+    #     return optim2, [err2, result2.cost], fit_parameters
+    #
+    # def fit_data_to_trigaussian(self, func, x, data):
+    #     """
+    #     Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
+    #     Return the optimal parameters found for two gaussians.
+    #
+    #     Parameters
+    #     ----------
+    #     data: ndarray
+    #         Given data (1d)
+    #
+    #     Returns
+    #     -------
+    #     optim2: tuple
+    #         Optimal parameters
+    #     """
+    #     fit_parameters = ("Intensity 1: ","Width 1: ", "Center 1: ",
+    #                       "Intensity 2: ","Width 2: ", "Center 2: ",
+    #                       "Intensity 3: ","Width 3: ", "Center 3: ", "Offset: ")
+    #     maximas = self.find_maximas(data)
+    #     height = data.max()/2
+    #
+    #     guess3 = [height, 0.5, maximas[0],
+    #               height, 0.5, maximas[0],
+    #               height, 0.5, maximas[0], 0]
+    #     bounds3 = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],
+    #                         [0, data.max()+0.1], [0, np.inf], [0,data.shape[0]],
+    #                         [0, data.max()+0.1], [0, np.inf], [0, data.shape[0]],[0,0.1]]).T
+    #
+    #     # calculate error by squared distance to data
+    #     errfunc3 = lambda p, x, y: (func(x, *p) - y) ** 2
+    #
+    #     result3 = optimize.least_squares(errfunc3, guess3[:], bounds=bounds3, args=(x, data))
+    #     optim3 = result3.x
+    #
+    #     chi3 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)
+    #
+    #     err3 = chi3(optim3, x, data).sum()
+    #
+    #     print(f"three gaussian chi2 {err3}, cost {result3.cost}")
+    #     return optim3, [err3, result3.cost], fit_parameters
+    #
+    # def fit_data_to_cylinder_projection(self, func, x, data):
+    #     """
+    #     Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
+    #     Return the optimal parameters.
+    #
+    #     Parameters
+    #     ----------
+    #     data: ndarray
+    #         Given data (1d)
+    #
+    #     Returns
+    #     -------
+    #     optim: tuple
+    #         Optimal parameters
+    #     """
+    #     fit_parameters = ("Intensity cylinder: ", "Center: ", "Inner Radius: ", "Outer Radius: ", "Offset: ", "Blur: ")
+    #     #maximas = self.find_maximas(data)
+    #     CM = np.average(x, weights=data)
+    #     height = data.max()
+    #     expansion = self.expansion
+    #     r_multi = self.expansion/2
+    #     guess = [2*height, CM, 25*r_multi+8.75, 25*r_multi+8.75*2, 0, 10]
+    #     bounds = np.array([[0, np.inf], [CM-10, CM+10],
+    #                         [8*expansion, 40*expansion], [15*expansion, 60*expansion], [0,0.01],[9,11]]).T
+    #     # calculate error by squared distance to data
+    #     errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
+    #
+    #     result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
+    #     guess2 = guess
+    #     result2 = optimize.least_squares(errfunc, guess2[:], bounds=bounds, args=(x, data))
+    #     if result.cost< result2.cost:
+    #         optim = result.x
+    #     else:
+    #         print("smaller max width used")
+    #         optim = result2.x
+    #
+    #     chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)
+    #
+    #     err = chi(optim, x, data).sum()
+    #     print(optim[-1])
+    #
+    #     print(f"three gaussian chi2 {err}, cost {result.cost}")
+    #     return optim, [err,result.cost], fit_parameters
+    #
+    # @staticmethod
+    # def find_maximas(data, n=3):
+    #     """
+    #     Return the n biggest local maximas of a given 1d array.
+    #
+    #     Parameters
+    #     ----------
+    #     data: ndarray
+    #         Input data
+    #     n: int
+    #         Number of local maximas to find
+    #
+    #     Returns
+    #     -------
+    #     values: ndarray
+    #         Indices of local maximas.
+    #     """
+    #     maximas = argrelextrema(data, np.greater, order=2)
+    #     maxima_value = data[maximas]
+    #     values = np.ones(n)
+    #     maximum = 0
+    #     for i in range(n):
+    #         try:
+    #             index = np.argmax(maxima_value)
+    #             if maxima_value[index]< 0.7*maximum:
+    #                 values[i] = values[0]
+    #                 continue
+    #
+    #             maximum = maxima_value[index]
+    #             maxima_value[index] = 0
+    #
+    #             values[i] = maximas[0][index]
+    #         except:
+    #             print("zero exception")
+    #     return values
+    #
+    # def fit_data_to_multi_cylinder_projection(self, func, x, data):
+    #     """
+    #     Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
+    #     Return the optimal parameters.
+    #
+    #     Parameters
+    #     ----------
+    #     data: ndarray
+    #         Given data (1d)
+    #
+    #     Returns
+    #     -------
+    #     optim: tuple
+    #         Optimal parameters to fit two gaussians to data
+    #     """
+    #     fit_parameters = ("Intensity cylinder 1: ","Intensity cylinder 2: ","Intensity cylinder 3: ","Center: ", "Expansion: ", "Offset: ", "Sigma: ")
+    #     #maximas = self.find_maximas(data)
+    #     CM = np.average(x, weights=data)
+    #     height = data.max()
+    #
+    #     guess = [height/2, height/3, height, CM, self.expansion, 0, 10]
+    #     bounds = np.array([[0, np.inf], [0, np.inf],
+    #                         [0, np.inf], [CM-10, CM+10], [self.expansion-0.5, self.expansion+0.5],[0,5], [5,15]]).T
+    #
+    #     # calculate error by squared distance to data
+    #     errfunc = lambda p, x, y: (func(x, *p) - y) ** 2
+    #
+    #     result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
+    #     optim = result.x
+    #
+    #
+    #     chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)
+    #
+    #     err = chi(optim, x, data).sum()
+    #     print(optim[-1])
+    #
+    #     print(f"three gaussian chi2 {err}, cost {result.cost}")
+    #     return optim, [err,result.cost], fit_parameters
 #
 # fit_functions = dict()
 # def register(func):
