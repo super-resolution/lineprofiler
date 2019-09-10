@@ -6,9 +6,9 @@
 Welcome to line profiler's documentation!
 =========================================
 
-Line profiler purpose is to evaluate datasets in a biological/biophysical context. The software recognizes line shaped 
+Line profiler's purpose is to evaluate datasets in a biological/biophysical context. The software recognizes line shaped 
 structures in image data and computes their mean position and orientation with sub-pixel accuracy. For each line a mean 
-intensity profile is calculated. Utilising the whole image the software prevents biases, caused by preselecting suitable 
+intensity profile is calculated. Utilising the whole image the software prevents biases, caused by preselecting suitable data
 subsets. 
 
 Currently line profiler support's two modes:

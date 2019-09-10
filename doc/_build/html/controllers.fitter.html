@@ -114,52 +114,6 @@ of the second antibody (antibody width a = 8.75).</div></blockquote>
 <div><a class="reference internal image-reference" href="_images/multi_gaussian.png"><img alt="_images/multi_gaussian.png" src="_images/multi_gaussian.png" style="width: 49%;" /></a>
 <a class="reference internal image-reference" href="_images/cylinder.png"><img alt="_images/cylinder.png" src="_images/cylinder.png" style="width: 49%;" /></a>
 </div></blockquote>
-<dl class="method">
-<dt id="controllers.fitter.Fit.bigaussian">
-<code class="descname">bigaussian</code><span class="sig-paren">(</span><em>x</em>, <em>h1</em>, <em>w1</em>, <em>c1</em>, <em>h2</em>, <em>w2</em>, <em>c2</em>, <em>noise_lvl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.bigaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.bigaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sum of two gaussian functions.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>See</strong> (func: <cite>gaussian</cite>) – </td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>gaussian</strong> – (nx1) array of y values corresponding to the given parameters</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">ndarray</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="staticmethod">
-<dt id="controllers.fitter.Fit.cylinder_projection">
-<em class="property">static </em><code class="descname">cylinder_projection</code><span class="sig-paren">(</span><em>x</em>, <em>intensity</em>, <em>center</em>, <em>r1</em>, <em>r2</em>, <em>offset</em>, <em>blur</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.cylinder_projection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.cylinder_projection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Intensity projection of a cylinder</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>x</strong> (<em>ndarray</em>) – Coordinate space in x direction</li>
-<li><strong>center</strong> (<em>float</em>) – Center coordinate of cylinder function</li>
-<li><strong>intensity</strong> (<em>float</em>) – Maximum intensity of cylinder projection</li>
-<li><strong>r1</strong> (<em>float</em>) – Inner radius</li>
-<li><strong>r2</strong> (<em>float</em>) – Outer radius</li>
-<li><strong>blur</strong> (<em>flaot</em>) – Convolve cylinder projection with gaussian blur of size “blur”</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>y</strong> – y values of cylinder function</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="staticmethod">
 <dt id="controllers.fitter.Fit.find_maximas">
 <em class="property">static </em><code class="descname">find_maximas</code><span class="sig-paren">(</span><em>data</em>, <em>n=3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.find_maximas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.find_maximas" title="Permalink to this definition">¶</a></dt>
@@ -209,9 +163,9 @@ input data the least square fit and the optimal parameters is saved as png.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="controllers.fitter.Fit.fit_data_to_bigaussian">
-<code class="descname">fit_data_to_bigaussian</code><span class="sig-paren">(</span><em>x</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.fit_data_to_bigaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.fit_data_to_bigaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
+<dt id="controllers.fitter.Fit.fit_data_to">
+<code class="descname">fit_data_to</code><span class="sig-paren">(</span><em>func</em>, <em>x</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.fit_data_to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.fit_data_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fit data to given func using least square optimization. Compute and  print chi2.
 Return the optimal parameters found for two gaussians.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -222,127 +176,6 @@ Return the optimal parameters found for two gaussians.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>optim2</strong> – Optimal parameters</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="controllers.fitter.Fit.fit_data_to_cylinder_projection">
-<code class="descname">fit_data_to_cylinder_projection</code><span class="sig-paren">(</span><em>x</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.fit_data_to_cylinder_projection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.fit_data_to_cylinder_projection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
-Return the optimal parameters.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>ndarray</em>) – Given data (1d)</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>optim</strong> – Optimal parameters</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="controllers.fitter.Fit.fit_data_to_gaussian">
-<code class="descname">fit_data_to_gaussian</code><span class="sig-paren">(</span><em>x</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.fit_data_to_gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.fit_data_to_gaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
-Return the optimal parameters found for two gaussians.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>ndarray</em>) – Given data (1d)</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>optim2</strong> – Optimal parameters</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="controllers.fitter.Fit.fit_data_to_multi_cylinder_projection">
-<code class="descname">fit_data_to_multi_cylinder_projection</code><span class="sig-paren">(</span><em>x</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.fit_data_to_multi_cylinder_projection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.fit_data_to_multi_cylinder_projection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.
-Return the optimal parameters.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>ndarray</em>) – Given data (1d)</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>optim</strong> – Optimal parameters to fit two gaussians to data</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="controllers.fitter.Fit.fit_data_to_trigaussian">
-<code class="descname">fit_data_to_trigaussian</code><span class="sig-paren">(</span><em>x</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.fit_data_to_trigaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.fit_data_to_trigaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.
-Return the optimal parameters found for two gaussians.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>ndarray</em>) – Given data (1d)</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>optim2</strong> – Optimal parameters</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="staticmethod">
-<dt id="controllers.fitter.Fit.gaussian">
-<em class="property">static </em><code class="descname">gaussian</code><span class="sig-paren">(</span><em>x</em>, <em>height</em>, <em>width</em>, <em>center</em>, <em>noise_lvl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.gaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Simple guassian function.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>x</strong> (<em>ndarray</em>) – Coordinate space in x direction</li>
-<li><strong>height</strong> (<em>float</em>) – Maximum height of gaussian function</li>
-<li><strong>center</strong> (<em>float</em>) – Center of gaussian funtcion</li>
-<li><strong>width</strong> (<em>float</em>) – Width of gaussian function</li>
-<li><strong>noise_lvl</strong> (<em>float</em>) – y offset (background lvl)</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gaussian</strong> – (nx1) array of y values corresponding to the given parameters</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="controllers.fitter.Fit.trigaussian">
-<code class="descname">trigaussian</code><span class="sig-paren">(</span><em>x</em>, <em>h1</em>, <em>w1</em>, <em>c1</em>, <em>h2</em>, <em>w2</em>, <em>c2</em>, <em>h3</em>, <em>w3</em>, <em>c3</em>, <em>noise_lvl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.trigaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.trigaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sum of three gaussian function.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>See</strong> (func: <cite>gaussian</cite>) – </td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>gaussian</strong> – (nx1) array of y values corresponding to the given parameters</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">ndarray</td>
 </tr>
 </tbody>
 </table>
@@ -357,7 +190,14 @@ Return the optimal parameters found for two gaussians.</p>
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="controllers.utility.html">Utility package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Fitter package</a></li>
+</ul>
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>

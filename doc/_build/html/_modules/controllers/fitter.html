@@ -47,6 +47,8 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">ndimage</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">abc</span><span class="p">,</span><span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">controllers.fit_function_factory</span> <span class="k">import</span> <span class="o">*</span>
 
 
 <div class="viewcode-block" id="Fit"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit">[docs]</a><span class="k">class</span> <span class="nc">Fit</span><span class="p">:</span>
@@ -121,9 +123,25 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fit_functions</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span> <span class="s2">&quot;bigaussian&quot;</span><span class="p">,</span> <span class="s2">&quot;trigaussian&quot;</span><span class="p">,</span> <span class="s2">&quot;cylinder_projection&quot;</span><span class="p">,</span> <span class="s2">&quot;multi_cylinder_projection&quot;</span><span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span> <span class="o">=</span> <span class="mi">1</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fit_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fit_functions</span>
+
+    <span class="nd">@fit_function</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">fit_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">):</span>
+            <span class="n">unique_val</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="c1">#self._fit_functions = unique_val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fit functions must be of iterable type&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">unique_val</span><span class="p">:</span>
+            <span class="c1">#if func not in fit_functions:</span>
+            <span class="n">register</span><span class="p">(</span><span class="nb">globals</span><span class="p">()[</span><span class="n">func</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit_functions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="o">-</span><span class="n">unique_val</span><span class="p">)</span> <span class="o">!=</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">fit_functions</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">fit_functions</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="o">-</span><span class="n">unique_val</span><span class="p">))</span>
+        <span class="c1">#fit_functions.remove(fit_functions-unique_val)</span>
 
 <div class="viewcode-block" id="Fit.fit_data"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.fit_data">[docs]</a>    <span class="k">def</span> <span class="nf">fit_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">nth_line</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">),</span> <span class="n">n_profiles</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -150,64 +168,35 @@
         <span class="n">x_aligned</span> <span class="o">=</span> <span class="n">x</span><span class="o">-</span><span class="n">center</span>
 
 
-        <span class="k">for</span> <span class="n">z</span><span class="p">,</span><span class="n">function</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_functions</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span><span class="n">func</span> <span class="ow">in</span> <span class="n">fit_functions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
             <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">((</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">))</span>
             <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_aligned</span><span class="p">,</span> <span class="n">data</span> <span class="o">/</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">c</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;averaged line profile&quot;</span><span class="p">)</span>
 
-            <span class="n">fit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;fit_data_to_&quot;</span><span class="o">+</span><span class="n">function</span><span class="p">)</span>
-            <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">)</span>
-            <span class="n">optim</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">fit_parameters</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
-            <span class="n">txt</span> <span class="o">=</span> <span class="n">function</span> <span class="o">+</span> <span class="s2">&quot;fit parameters: </span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">f</span><span class="s2">&quot;Number of profiles: </span><span class="si">{n_profiles}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">parameter</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fit_parameters</span><span class="p">):</span>
+            <span class="c1">#fit = getattr(self, &quot;fit_data_to_&quot;+name)</span>
+            <span class="c1">#func = getattr(self, name)</span>
+            <span class="n">optim</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_data_to</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+            <span class="n">txt</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;fit parameters: </span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">f</span><span class="s2">&quot;Number of profiles: </span><span class="si">{n_profiles}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">parameter</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">fit_parameters</span><span class="p">):</span>
                 <span class="n">txt</span> <span class="o">+=</span> <span class="n">parameter</span> <span class="o">+</span> <span class="n">f</span><span class="s2">&quot;{np.abs(optim[i]):.2f}&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_aligned</span><span class="p">,</span> <span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">optim</span><span class="p">)</span><span class="o">/</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="p">,</span>
-                    <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">function</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_aligned</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">optim</span><span class="p">)</span><span class="o">/</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="p">,</span>
+                    <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
             <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
             <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;normed intensity [a.u.]&quot;</span><span class="p">)</span>
             <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;distance [nm]&quot;</span><span class="p">)</span>
             <span class="n">fig</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">txt</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
             <span class="n">fig</span><span class="o">.</span><span class="n">set_size_inches</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">path_new</span> <span class="o">=</span> <span class="n">path</span><span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">function</span>
+                <span class="n">path_new</span> <span class="o">=</span> <span class="n">path</span><span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">name</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path_new</span><span class="p">):</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path_new</span><span class="p">)</span>
                 <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_new</span> <span class="o">+</span><span class="n">rf</span><span class="s1">&#39;\profile_</span><span class="si">{nth_line}</span><span class="s1">.png&#39;</span><span class="p">)</span>
             <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="c1"># ax1.plot(x_aligned, self.gaussian(x, optim[0],optim[1],optim[2],optim[-1])/data.max(),</span>
-        <span class="c1">#          lw=1, c=&#39;r&#39;, ls=&#39;--&#39;, label=&#39;bi-Gaussian fit&#39;)</span>
-        <span class="c1"># ax1.plot(x_aligned, self.gaussian(x, optim[3], optim[4], optim[5], optim[-1])/data.max(),</span>
-        <span class="c1">#          lw=1, c=&#39;r&#39;, ls=&#39;--&#39;, )</span>
-        <span class="c1"># #plot data</span>
-<span class="c1"># coordinate space perpendicular to spline fit</span>
-
-        <span class="c1"># optim_print = np.around(optim, decimals=2)</span>
-
-        <span class="c1"># txt = f&quot;Cylinder-projection fit parameters: \n&quot; \</span>
-        <span class="c1">#       f&quot;Number of profiles: {n_profiles} \n&quot; \</span>
-        <span class="c1">#       f&quot;Inner Radius: {np.abs(optim_print[0]):.2f} \n&quot; \</span>
-        <span class="c1">#       f&quot;Outer Radius: {np.abs(optim_print[1]):.2f} \n&quot; \</span>
-        <span class="c1">#       f&quot;Center: {optim_print[2]:.2f}\n&quot; \</span>
-        <span class="c1">#       f&quot;Sigma: {optim_print[3]:.2f}\n&quot; \</span>
-        <span class="c1">#       f&quot;Intensity: {optim_print[4]:.2f}\n&quot; \</span>
-        <span class="c1">#       f&quot;{optim_print[6]:.2f}&quot;</span>
-
-        <span class="c1">#</span>
-        <span class="c1"># txt = f&quot;Bi-gaussian fit parameters: \n&quot; \</span>
-        <span class="c1">#       f&quot;Number of profiles: {n_profiles} \n&quot; \</span>
-        <span class="c1">#       f&quot;Peak distance: {np.abs(optim_print[2]-optim_print[5]):.2f} \n&quot; \</span>
-        <span class="c1">#       f&quot;Center: {optim_print[2]:.2f}, {optim_print[5]:.2f} \n&quot; \</span>
-        <span class="c1">#       f&quot;Width: {optim_print[1]:.2f}, {optim_print[4]:.2f} \n&quot; \</span>
-        <span class="c1">#       f&quot;Intensity: {optim_print[0]:.2f}, {optim_print[3]:.2f}&quot;</span>
-
-
         <span class="k">return</span> <span class="n">loss</span></div>
-        <span class="c1">#plt.show()</span>
 
-<div class="viewcode-block" id="Fit.fit_data_to_gaussian"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.fit_data_to_gaussian">[docs]</a>    <span class="k">def</span> <span class="nf">fit_data_to_gaussian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="Fit.fit_data_to"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.fit_data_to">[docs]</a>    <span class="k">def</span> <span class="nf">fit_data_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.</span>
+<span class="sd">        Fit data to given func using least square optimization. Compute and  print chi2.</span>
 <span class="sd">        Return the optimal parameters found for two gaussians.</span>
 
 <span class="sd">        Parameters</span>
@@ -220,151 +209,30 @@
 <span class="sd">        optim2: tuple</span>
 <span class="sd">            Optimal parameters</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">fit_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Intensity 1: &quot;</span><span class="p">,</span><span class="s2">&quot;Width 1: &quot;</span><span class="p">,</span> <span class="s2">&quot;Center 1: &quot;</span><span class="p">,</span> <span class="s2">&quot;Offset: &quot;</span><span class="p">)</span>
-        <span class="n">maximas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_maximas</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mi">2</span>
-        <span class="n">guess</span> <span class="o">=</span> <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mf">0.1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
-                            <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.1</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;maximas&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_maximas</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;CM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;expansion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span>
+        <span class="n">param</span><span class="p">[</span><span class="s1">&#39;width&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">bounds</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+        <span class="n">guess</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">guess</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
 
         <span class="c1"># calculate error by squared distance to data</span>
-        <span class="n">errfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">errfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
 
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">least_squares</span><span class="p">(</span><span class="n">errfunc</span><span class="p">,</span> <span class="n">guess</span><span class="p">[:],</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
         <span class="n">optim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">x</span>
 
-        <span class="n">chi1</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">chi1</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">((</span><span class="n">func</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="n">func</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span>
 
 
         <span class="n">err</span> <span class="o">=</span> <span class="n">chi1</span><span class="p">(</span><span class="n">optim</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
 
-        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;one gaussian chi2 </span><span class="si">{err}</span><span class="s2">, cost </span><span class="si">{result.cost}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">optim</span><span class="p">,</span> <span class="p">[</span><span class="n">err</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">cost</span><span class="p">],</span> <span class="n">fit_parameters</span></div>
-
-<div class="viewcode-block" id="Fit.fit_data_to_bigaussian"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.fit_data_to_bigaussian">[docs]</a>    <span class="k">def</span> <span class="nf">fit_data_to_bigaussian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.</span>
-<span class="sd">        Return the optimal parameters found for two gaussians.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        data: ndarray</span>
-<span class="sd">            Given data (1d)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        optim2: tuple</span>
-<span class="sd">            Optimal parameters</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">fit_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Intensity 1: &quot;</span><span class="p">,</span><span class="s2">&quot;Width 1: &quot;</span><span class="p">,</span> <span class="s2">&quot;Center 1: &quot;</span><span class="p">,</span>
-                          <span class="s2">&quot;Intensity 2: &quot;</span><span class="p">,</span><span class="s2">&quot;Width 2: &quot;</span><span class="p">,</span> <span class="s2">&quot;Center 2: &quot;</span><span class="p">,</span> <span class="s2">&quot;Offset: &quot;</span><span class="p">)</span>
-        <span class="n">maximas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_maximas</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">maximas</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mi">2</span>
-        <span class="n">guess2</span> <span class="o">=</span> <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                  <span class="n">height</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">bounds2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mf">0.1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
-                            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.1</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
-
-        <span class="c1"># calculate error by squared distance to data</span>
-        <span class="n">errfunc2</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bigaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-
-        <span class="n">result2</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">least_squares</span><span class="p">(</span><span class="n">errfunc2</span><span class="p">,</span> <span class="n">guess2</span><span class="p">[:],</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds2</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-        <span class="n">optim2</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">x</span>
-
-        <span class="n">chi2</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">bigaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">bigaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span>
-
-        <span class="n">err2</span> <span class="o">=</span> <span class="n">chi2</span><span class="p">(</span><span class="n">optim2</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-
-        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;two gaussian chi2 </span><span class="si">{err2}</span><span class="s2">, cost </span><span class="si">{result2.cost}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">optim2</span><span class="p">,</span> <span class="p">[</span><span class="n">err2</span><span class="p">,</span> <span class="n">result2</span><span class="o">.</span><span class="n">cost</span><span class="p">],</span> <span class="n">fit_parameters</span></div>
-
-<div class="viewcode-block" id="Fit.fit_data_to_trigaussian"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.fit_data_to_trigaussian">[docs]</a>    <span class="k">def</span> <span class="nf">fit_data_to_trigaussian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.</span>
-<span class="sd">        Return the optimal parameters found for two gaussians.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        data: ndarray</span>
-<span class="sd">            Given data (1d)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        optim2: tuple</span>
-<span class="sd">            Optimal parameters</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">fit_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Intensity 1: &quot;</span><span class="p">,</span><span class="s2">&quot;Width 1: &quot;</span><span class="p">,</span> <span class="s2">&quot;Center 1: &quot;</span><span class="p">,</span>
-                          <span class="s2">&quot;Intensity 2: &quot;</span><span class="p">,</span><span class="s2">&quot;Width 2: &quot;</span><span class="p">,</span> <span class="s2">&quot;Center 2: &quot;</span><span class="p">,</span>
-                          <span class="s2">&quot;Intensity 3: &quot;</span><span class="p">,</span><span class="s2">&quot;Width 3: &quot;</span><span class="p">,</span> <span class="s2">&quot;Center 3: &quot;</span><span class="p">,</span> <span class="s2">&quot;Offset: &quot;</span><span class="p">)</span>
-        <span class="n">maximas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_maximas</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="mi">2</span>
-
-        <span class="n">guess3</span> <span class="o">=</span> <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                  <span class="n">height</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                  <span class="n">height</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="n">bounds3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mf">0.1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
-                            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
-                            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.1</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
-
-        <span class="c1"># calculate error by squared distance to data</span>
-        <span class="n">errfunc3</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trigaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-
-        <span class="n">result3</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">least_squares</span><span class="p">(</span><span class="n">errfunc3</span><span class="p">,</span> <span class="n">guess3</span><span class="p">[:],</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds3</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-        <span class="n">optim3</span> <span class="o">=</span> <span class="n">result3</span><span class="o">.</span><span class="n">x</span>
-
-        <span class="n">chi3</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">trigaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">trigaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span>
-
-        <span class="n">err3</span> <span class="o">=</span> <span class="n">chi3</span><span class="p">(</span><span class="n">optim3</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-
-        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;three gaussian chi2 </span><span class="si">{err3}</span><span class="s2">, cost </span><span class="si">{result3.cost}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">optim3</span><span class="p">,</span> <span class="p">[</span><span class="n">err3</span><span class="p">,</span> <span class="n">result3</span><span class="o">.</span><span class="n">cost</span><span class="p">],</span> <span class="n">fit_parameters</span></div>
-
-<div class="viewcode-block" id="Fit.fit_data_to_cylinder_projection"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.fit_data_to_cylinder_projection">[docs]</a>    <span class="k">def</span> <span class="nf">fit_data_to_cylinder_projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.</span>
-<span class="sd">        Return the optimal parameters.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        data: ndarray</span>
-<span class="sd">            Given data (1d)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        optim: tuple</span>
-<span class="sd">            Optimal parameters</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">fit_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Intensity cylinder: &quot;</span><span class="p">,</span> <span class="s2">&quot;Center: &quot;</span><span class="p">,</span> <span class="s2">&quot;Inner Radius: &quot;</span><span class="p">,</span> <span class="s2">&quot;Outer Radius: &quot;</span><span class="p">,</span> <span class="s2">&quot;Offset: &quot;</span><span class="p">,</span> <span class="s2">&quot;Blur: &quot;</span><span class="p">)</span>
-        <span class="c1">#maximas = self.find_maximas(data)</span>
-        <span class="n">CM</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-        <span class="n">expansion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span>
-        <span class="n">r_multi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span><span class="o">/</span><span class="mi">2</span>
-        <span class="n">guess</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="n">height</span><span class="p">,</span> <span class="n">CM</span><span class="p">,</span> <span class="mi">25</span><span class="o">*</span><span class="n">r_multi</span><span class="o">+</span><span class="mf">8.75</span><span class="p">,</span> <span class="mi">25</span><span class="o">*</span><span class="n">r_multi</span><span class="o">+</span><span class="mf">8.75</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">]</span>
-        <span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="p">[</span><span class="n">CM</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="n">CM</span><span class="o">+</span><span class="mi">10</span><span class="p">],</span>
-                            <span class="p">[</span><span class="mi">8</span><span class="o">*</span><span class="n">expansion</span><span class="p">,</span> <span class="mi">40</span><span class="o">*</span><span class="n">expansion</span><span class="p">],</span> <span class="p">[</span><span class="mi">15</span><span class="o">*</span><span class="n">expansion</span><span class="p">,</span> <span class="mi">60</span><span class="o">*</span><span class="n">expansion</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.01</span><span class="p">],[</span><span class="mi">9</span><span class="p">,</span><span class="mi">11</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
-        <span class="c1"># calculate error by squared distance to data</span>
-        <span class="n">errfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-
-        <span class="n">result</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">least_squares</span><span class="p">(</span><span class="n">errfunc</span><span class="p">,</span> <span class="n">guess</span><span class="p">[:],</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-        <span class="n">guess2</span> <span class="o">=</span> <span class="n">guess</span>
-        <span class="n">result2</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">least_squares</span><span class="p">(</span><span class="n">errfunc</span><span class="p">,</span> <span class="n">guess2</span><span class="p">[:],</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">cost</span><span class="o">&lt;</span> <span class="n">result2</span><span class="o">.</span><span class="n">cost</span><span class="p">:</span>
-            <span class="n">optim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">x</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;smaller max width used&quot;</span><span class="p">)</span>
-            <span class="n">optim</span> <span class="o">=</span> <span class="n">result2</span><span class="o">.</span><span class="n">x</span>
-
-        <span class="n">chi</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span>
-
-        <span class="n">err</span> <span class="o">=</span> <span class="n">chi</span><span class="p">(</span><span class="n">optim</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-
-        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;three gaussian chi2 </span><span class="si">{err}</span><span class="s2">, cost </span><span class="si">{result.cost}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">optim</span><span class="p">,</span> <span class="p">[</span><span class="n">err</span><span class="p">,</span><span class="n">result</span><span class="o">.</span><span class="n">cost</span><span class="p">],</span> <span class="n">fit_parameters</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;</span><span class="si">{func.__name__}</span><span class="s2"> chi2 </span><span class="si">{err}</span><span class="s2">, cost </span><span class="si">{result.cost}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">optim</span><span class="p">,</span> <span class="p">[</span><span class="n">err</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">cost</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="Fit.find_maximas"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.find_maximas">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">find_maximas</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
@@ -400,165 +268,389 @@
                 <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
             <span class="k">except</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;zero exception&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">values</span></div>
+        <span class="k">return</span> <span class="n">values</span></div></div>
 
-<div class="viewcode-block" id="Fit.gaussian"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.gaussian">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">noise_lvl</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Simple guassian function.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        x: ndarray</span>
-<span class="sd">            Coordinate space in x direction</span>
-<span class="sd">        height: float</span>
-<span class="sd">            Maximum height of gaussian function</span>
-<span class="sd">        center: float</span>
-<span class="sd">            Center of gaussian funtcion</span>
-<span class="sd">        width: float</span>
-<span class="sd">            Width of gaussian function</span>
-<span class="sd">        noise_lvl: float</span>
-<span class="sd">            y offset (background lvl)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        gaussian: ndarray</span>
-<span class="sd">            (nx1) array of y values corresponding to the given parameters</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">height</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">center</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">width</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="n">noise_lvl</span></div>
-
-<div class="viewcode-block" id="Fit.bigaussian"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.bigaussian">[docs]</a>    <span class="k">def</span> <span class="nf">bigaussian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">w1</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">w2</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">noise_lvl</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Sum of two gaussian functions.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        See :func: `gaussian`</span>
-
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        gaussian: ndarray</span>
-<span class="sd">            (nx1) array of y values corresponding to the given parameters</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">w1</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">w2</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">noise_lvl</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Fit.trigaussian"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.trigaussian">[docs]</a>    <span class="k">def</span> <span class="nf">trigaussian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">w1</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">w2</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">h3</span><span class="p">,</span> <span class="n">w3</span><span class="p">,</span> <span class="n">c3</span><span class="p">,</span> <span class="n">noise_lvl</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Sum of three gaussian function.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        See :func: `gaussian`</span>
-
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        gaussian: ndarray</span>
-<span class="sd">            (nx1) array of y values corresponding to the given parameters</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">w1</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">w2</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h3</span><span class="p">,</span> <span class="n">w3</span><span class="p">,</span> <span class="n">c3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">noise_lvl</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="Fit.cylinder_projection"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.cylinder_projection">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">intensity</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">blur</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Intensity projection of a cylinder</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        x: ndarray</span>
-<span class="sd">            Coordinate space in x direction</span>
-<span class="sd">        center: float</span>
-<span class="sd">            Center coordinate of cylinder function</span>
-<span class="sd">        intensity: float</span>
-<span class="sd">            Maximum intensity of cylinder projection</span>
-<span class="sd">        r1: float</span>
-<span class="sd">            Inner radius</span>
-<span class="sd">        r2: float</span>
-<span class="sd">            Outer radius</span>
-<span class="sd">        blur: flaot</span>
-<span class="sd">            Convolve cylinder projection with gaussian blur of size &quot;blur&quot;</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        y: ndarray</span>
-<span class="sd">            y values of cylinder function</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">axis</span> <span class="o">=</span> <span class="n">x</span>
-        <span class="n">axis</span> <span class="o">=</span> <span class="n">axis</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
-        <span class="n">axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
-        <span class="n">pos1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">axis</span><span class="o">&lt;</span><span class="n">r1</span><span class="p">)</span>
-        <span class="n">pos2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">axis</span><span class="o">&gt;=</span><span class="n">r1</span><span class="p">,</span> <span class="n">axis</span><span class="o">&lt;</span><span class="n">r2</span><span class="p">))</span>
-        <span class="n">y</span><span class="p">[</span><span class="n">pos1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r2</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">axis</span><span class="p">[</span><span class="n">pos1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r1</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">axis</span><span class="p">[</span><span class="n">pos1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">y</span><span class="p">[</span><span class="n">pos2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">r2</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">axis</span><span class="p">[</span><span class="n">pos2</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">/</span><span class="n">r2</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">*</span><span class="n">intensity</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">+</span><span class="n">offset</span>
-        <span class="k">if</span> <span class="n">blur</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">y</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">gaussian_filter1d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">blur</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">y</span></div>
-
-
-<div class="viewcode-block" id="Fit.fit_data_to_multi_cylinder_projection"><a class="viewcode-back" href="../../controllers.fitter.html#controllers.fitter.Fit.fit_data_to_multi_cylinder_projection">[docs]</a>    <span class="k">def</span> <span class="nf">fit_data_to_multi_cylinder_projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.</span>
-<span class="sd">        Return the optimal parameters.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        data: ndarray</span>
-<span class="sd">            Given data (1d)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        optim: tuple</span>
-<span class="sd">            Optimal parameters to fit two gaussians to data</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">fit_parameters</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Intensity cylinder 1: &quot;</span><span class="p">,</span><span class="s2">&quot;Intensity cylinder 2: &quot;</span><span class="p">,</span><span class="s2">&quot;Intensity cylinder 3: &quot;</span><span class="p">,</span><span class="s2">&quot;Center: &quot;</span><span class="p">,</span> <span class="s2">&quot;Expansion: &quot;</span><span class="p">,</span> <span class="s2">&quot;Offset: &quot;</span><span class="p">,</span> <span class="s2">&quot;Sigma: &quot;</span><span class="p">)</span>
-        <span class="c1">#maximas = self.find_maximas(data)</span>
-        <span class="n">CM</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-
-        <span class="n">guess</span> <span class="o">=</span> <span class="p">[</span><span class="n">height</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">height</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">CM</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">]</span>
-        <span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span>
-                            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="p">[</span><span class="n">CM</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="n">CM</span><span class="o">+</span><span class="mi">10</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">expansion</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span><span class="o">+</span><span class="mf">0.5</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">15</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
-
-        <span class="c1"># calculate error by squared distance to data</span>
-        <span class="n">errfunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-
-        <span class="n">result</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">least_squares</span><span class="p">(</span><span class="n">errfunc</span><span class="p">,</span> <span class="n">guess</span><span class="p">[:],</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
-        <span class="c1">#if result.cost&lt; result2.cost:</span>
-        <span class="n">optim</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">x</span>
-        <span class="c1">#else:</span>
-        <span class="c1">#    print(&quot;smaller max width used&quot;)</span>
-        <span class="c1">#    optim = result2.x</span>
-
-        <span class="n">chi</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">multi_cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span>
-
-        <span class="n">err</span> <span class="o">=</span> <span class="n">chi</span><span class="p">(</span><span class="n">optim</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">optim</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-
-        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;three gaussian chi2 </span><span class="si">{err}</span><span class="s2">, cost </span><span class="si">{result.cost}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">optim</span><span class="p">,</span> <span class="p">[</span><span class="n">err</span><span class="p">,</span><span class="n">result</span><span class="o">.</span><span class="n">cost</span><span class="p">],</span> <span class="n">fit_parameters</span></div>
-
-    <span class="k">def</span> <span class="nf">multi_cylinder_projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">i3</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">expansion</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">blur</span><span class="p">):</span>
-        <span class="n">cyl1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">i1</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="mi">25</span><span class="o">*</span><span class="n">expansion</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="mf">8.75</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="mi">25</span><span class="o">*</span><span class="n">expansion</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="mf">8.75</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blur</span><span class="p">)</span>
-        <span class="n">cyl2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">i2</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="mf">42.5</span><span class="o">*</span><span class="n">expansion</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mf">42.5</span><span class="o">*</span><span class="n">expansion</span><span class="o">/</span><span class="mi">2</span><span class="o">+</span><span class="mf">8.75</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blur</span><span class="p">)</span>
-        <span class="n">cyl3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cylinder_projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">i3</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="mi">25</span><span class="o">*</span><span class="n">expansion</span><span class="o">/</span><span class="mi">2</span><span class="o">+</span><span class="mf">8.75</span><span class="p">,</span><span class="mi">25</span><span class="o">*</span><span class="n">expansion</span><span class="o">/</span><span class="mi">2</span><span class="o">+</span><span class="mf">8.75</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blur</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="p">(</span><span class="n">cyl1</span><span class="o">+</span><span class="n">cyl2</span><span class="o">+</span><span class="n">cyl3</span><span class="o">+</span><span class="n">offset</span><span class="p">)</span></div>
+    <span class="c1"># def fit_data_to_gaussian(self, func, x, data):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.</span>
+    <span class="c1">#     Return the optimal parameters found for two gaussians.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     data: ndarray</span>
+    <span class="c1">#         Given data (1d)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     optim2: tuple</span>
+    <span class="c1">#         Optimal parameters</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     fit_parameters = (&quot;Intensity 1: &quot;,&quot;Width 1: &quot;, &quot;Center 1: &quot;, &quot;Offset: &quot;)</span>
+    <span class="c1">#     maximas = self.find_maximas(data)</span>
+    <span class="c1">#     height = data.max()/2</span>
+    <span class="c1">#     guess = [height, 0.5, maximas[0], 0]</span>
+    <span class="c1">#     bounds = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],</span>
+    <span class="c1">#                         [0,0.1]]).T</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # calculate error by squared distance to data</span>
+    <span class="c1">#     errfunc = lambda p, x, y: (func(x, *p) - y) ** 2</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#     result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))</span>
+    <span class="c1">#     optim = result.x</span>
+    <span class="c1">#</span>
+    <span class="c1">#     chi1 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#     err = chi1(optim, x, data).sum()</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#     print(f&quot;one gaussian chi2 {err}, cost {result.cost}&quot;)</span>
+    <span class="c1">#     return optim, [err, result.cost], fit_parameters</span>
+    <span class="c1">#</span>
+    <span class="c1"># def fit_data_to_bigaussian(self, func, x, data):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.</span>
+    <span class="c1">#     Return the optimal parameters found for two gaussians.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     data: ndarray</span>
+    <span class="c1">#         Given data (1d)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     optim2: tuple</span>
+    <span class="c1">#         Optimal parameters</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     fit_parameters = (&quot;Intensity 1: &quot;,&quot;Width 1: &quot;, &quot;Center 1: &quot;,</span>
+    <span class="c1">#                       &quot;Intensity 2: &quot;,&quot;Width 2: &quot;, &quot;Center 2: &quot;, &quot;Offset: &quot;)</span>
+    <span class="c1">#     maximas = self.find_maximas(data)</span>
+    <span class="c1">#     print(maximas)</span>
+    <span class="c1">#     height = data.max()/2</span>
+    <span class="c1">#     guess2 = [height, 0.5, maximas[0],</span>
+    <span class="c1">#               height, 0.5, maximas[1],0]</span>
+    <span class="c1">#     bounds2 = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],</span>
+    <span class="c1">#                         [0, data.max()+0.1], [0, np.inf], [0,data.shape[0]],[0,0.1]]).T</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # calculate error by squared distance to data</span>
+    <span class="c1">#     errfunc2 = lambda p, x, y: (func(x, *p) - y) ** 2</span>
+    <span class="c1">#</span>
+    <span class="c1">#     result2 = optimize.least_squares(errfunc2, guess2[:], bounds=bounds2, args=(x, data))</span>
+    <span class="c1">#     optim2 = result2.x</span>
+    <span class="c1">#</span>
+    <span class="c1">#     chi2 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     err2 = chi2(optim2, x, data).sum()</span>
+    <span class="c1">#</span>
+    <span class="c1">#     print(f&quot;two gaussian chi2 {err2}, cost {result2.cost} \n&quot;)</span>
+    <span class="c1">#     return optim2, [err2, result2.cost], fit_parameters</span>
+    <span class="c1">#</span>
+    <span class="c1"># def fit_data_to_trigaussian(self, func, x, data):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Fit one, two and three gaussians to given data per least square optimization. Compute and  print chi2.</span>
+    <span class="c1">#     Return the optimal parameters found for two gaussians.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     data: ndarray</span>
+    <span class="c1">#         Given data (1d)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     optim2: tuple</span>
+    <span class="c1">#         Optimal parameters</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     fit_parameters = (&quot;Intensity 1: &quot;,&quot;Width 1: &quot;, &quot;Center 1: &quot;,</span>
+    <span class="c1">#                       &quot;Intensity 2: &quot;,&quot;Width 2: &quot;, &quot;Center 2: &quot;,</span>
+    <span class="c1">#                       &quot;Intensity 3: &quot;,&quot;Width 3: &quot;, &quot;Center 3: &quot;, &quot;Offset: &quot;)</span>
+    <span class="c1">#     maximas = self.find_maximas(data)</span>
+    <span class="c1">#     height = data.max()/2</span>
+    <span class="c1">#</span>
+    <span class="c1">#     guess3 = [height, 0.5, maximas[0],</span>
+    <span class="c1">#               height, 0.5, maximas[0],</span>
+    <span class="c1">#               height, 0.5, maximas[0], 0]</span>
+    <span class="c1">#     bounds3 = np.array([[0,data.max()+0.1],[0,np.inf],[0,data.shape[0]],</span>
+    <span class="c1">#                         [0, data.max()+0.1], [0, np.inf], [0,data.shape[0]],</span>
+    <span class="c1">#                         [0, data.max()+0.1], [0, np.inf], [0, data.shape[0]],[0,0.1]]).T</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # calculate error by squared distance to data</span>
+    <span class="c1">#     errfunc3 = lambda p, x, y: (func(x, *p) - y) ** 2</span>
+    <span class="c1">#</span>
+    <span class="c1">#     result3 = optimize.least_squares(errfunc3, guess3[:], bounds=bounds3, args=(x, data))</span>
+    <span class="c1">#     optim3 = result3.x</span>
+    <span class="c1">#</span>
+    <span class="c1">#     chi3 = lambda p, x, y: ((func(x, *p) - y) ** 2)/func(x, *p)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     err3 = chi3(optim3, x, data).sum()</span>
+    <span class="c1">#</span>
+    <span class="c1">#     print(f&quot;three gaussian chi2 {err3}, cost {result3.cost}&quot;)</span>
+    <span class="c1">#     return optim3, [err3, result3.cost], fit_parameters</span>
+    <span class="c1">#</span>
+    <span class="c1"># def fit_data_to_cylinder_projection(self, func, x, data):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.</span>
+    <span class="c1">#     Return the optimal parameters.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     data: ndarray</span>
+    <span class="c1">#         Given data (1d)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     optim: tuple</span>
+    <span class="c1">#         Optimal parameters</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     fit_parameters = (&quot;Intensity cylinder: &quot;, &quot;Center: &quot;, &quot;Inner Radius: &quot;, &quot;Outer Radius: &quot;, &quot;Offset: &quot;, &quot;Blur: &quot;)</span>
+    <span class="c1">#     #maximas = self.find_maximas(data)</span>
+    <span class="c1">#     CM = np.average(x, weights=data)</span>
+    <span class="c1">#     height = data.max()</span>
+    <span class="c1">#     expansion = self.expansion</span>
+    <span class="c1">#     r_multi = self.expansion/2</span>
+    <span class="c1">#     guess = [2*height, CM, 25*r_multi+8.75, 25*r_multi+8.75*2, 0, 10]</span>
+    <span class="c1">#     bounds = np.array([[0, np.inf], [CM-10, CM+10],</span>
+    <span class="c1">#                         [8*expansion, 40*expansion], [15*expansion, 60*expansion], [0,0.01],[9,11]]).T</span>
+    <span class="c1">#     # calculate error by squared distance to data</span>
+    <span class="c1">#     errfunc = lambda p, x, y: (func(x, *p) - y) ** 2</span>
+    <span class="c1">#</span>
+    <span class="c1">#     result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))</span>
+    <span class="c1">#     guess2 = guess</span>
+    <span class="c1">#     result2 = optimize.least_squares(errfunc, guess2[:], bounds=bounds, args=(x, data))</span>
+    <span class="c1">#     if result.cost&lt; result2.cost:</span>
+    <span class="c1">#         optim = result.x</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         print(&quot;smaller max width used&quot;)</span>
+    <span class="c1">#         optim = result2.x</span>
+    <span class="c1">#</span>
+    <span class="c1">#     chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     err = chi(optim, x, data).sum()</span>
+    <span class="c1">#     print(optim[-1])</span>
+    <span class="c1">#</span>
+    <span class="c1">#     print(f&quot;three gaussian chi2 {err}, cost {result.cost}&quot;)</span>
+    <span class="c1">#     return optim, [err,result.cost], fit_parameters</span>
+    <span class="c1">#</span>
+    <span class="c1"># @staticmethod</span>
+    <span class="c1"># def find_maximas(data, n=3):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Return the n biggest local maximas of a given 1d array.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     data: ndarray</span>
+    <span class="c1">#         Input data</span>
+    <span class="c1">#     n: int</span>
+    <span class="c1">#         Number of local maximas to find</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     values: ndarray</span>
+    <span class="c1">#         Indices of local maximas.</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     maximas = argrelextrema(data, np.greater, order=2)</span>
+    <span class="c1">#     maxima_value = data[maximas]</span>
+    <span class="c1">#     values = np.ones(n)</span>
+    <span class="c1">#     maximum = 0</span>
+    <span class="c1">#     for i in range(n):</span>
+    <span class="c1">#         try:</span>
+    <span class="c1">#             index = np.argmax(maxima_value)</span>
+    <span class="c1">#             if maxima_value[index]&lt; 0.7*maximum:</span>
+    <span class="c1">#                 values[i] = values[0]</span>
+    <span class="c1">#                 continue</span>
+    <span class="c1">#</span>
+    <span class="c1">#             maximum = maxima_value[index]</span>
+    <span class="c1">#             maxima_value[index] = 0</span>
+    <span class="c1">#</span>
+    <span class="c1">#             values[i] = maximas[0][index]</span>
+    <span class="c1">#         except:</span>
+    <span class="c1">#             print(&quot;zero exception&quot;)</span>
+    <span class="c1">#     return values</span>
+    <span class="c1">#</span>
+    <span class="c1"># def fit_data_to_multi_cylinder_projection(self, func, x, data):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Fit a cylinder intensity projection to given data per least square optimization. Compute and  print chi2.</span>
+    <span class="c1">#     Return the optimal parameters.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     data: ndarray</span>
+    <span class="c1">#         Given data (1d)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     optim: tuple</span>
+    <span class="c1">#         Optimal parameters to fit two gaussians to data</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     fit_parameters = (&quot;Intensity cylinder 1: &quot;,&quot;Intensity cylinder 2: &quot;,&quot;Intensity cylinder 3: &quot;,&quot;Center: &quot;, &quot;Expansion: &quot;, &quot;Offset: &quot;, &quot;Sigma: &quot;)</span>
+    <span class="c1">#     #maximas = self.find_maximas(data)</span>
+    <span class="c1">#     CM = np.average(x, weights=data)</span>
+    <span class="c1">#     height = data.max()</span>
+    <span class="c1">#</span>
+    <span class="c1">#     guess = [height/2, height/3, height, CM, self.expansion, 0, 10]</span>
+    <span class="c1">#     bounds = np.array([[0, np.inf], [0, np.inf],</span>
+    <span class="c1">#                         [0, np.inf], [CM-10, CM+10], [self.expansion-0.5, self.expansion+0.5],[0,5], [5,15]]).T</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # calculate error by squared distance to data</span>
+    <span class="c1">#     errfunc = lambda p, x, y: (func(x, *p) - y) ** 2</span>
+    <span class="c1">#</span>
+    <span class="c1">#     result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))</span>
+    <span class="c1">#     optim = result.x</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#     chi = lambda p, x, y: ((func(x, *p) - y) ** 2) / func(x, *p)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     err = chi(optim, x, data).sum()</span>
+    <span class="c1">#     print(optim[-1])</span>
+    <span class="c1">#</span>
+    <span class="c1">#     print(f&quot;three gaussian chi2 {err}, cost {result.cost}&quot;)</span>
+    <span class="c1">#     return optim, [err,result.cost], fit_parameters</span>
+<span class="c1">#</span>
+<span class="c1"># fit_functions = dict()</span>
+<span class="c1"># def register(func):</span>
+<span class="c1">#     #print(func.__name__)</span>
+<span class="c1">#     if func.__name__ not in fit_functions:</span>
+<span class="c1">#         fit_functions[func.__name__] = func</span>
+<span class="c1">#     return func</span>
+<span class="c1">#</span>
+<span class="c1"># @register</span>
+<span class="c1"># def gaussian(x, height, width, center, noise_lvl):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Simple guassian function.</span>
+<span class="c1">#</span>
+<span class="c1">#     Parameters</span>
+<span class="c1">#     ----------</span>
+<span class="c1">#     x: ndarray</span>
+<span class="c1">#         Coordinate space in x direction</span>
+<span class="c1">#     height: float</span>
+<span class="c1">#         Maximum height of gaussian function</span>
+<span class="c1">#     center: float</span>
+<span class="c1">#         Center of gaussian funtcion</span>
+<span class="c1">#     width: float</span>
+<span class="c1">#         Width of gaussian function</span>
+<span class="c1">#     noise_lvl: float</span>
+<span class="c1">#         y offset (background lvl)</span>
+<span class="c1">#</span>
+<span class="c1">#     Returns</span>
+<span class="c1">#     -------</span>
+<span class="c1">#     gaussian: ndarray</span>
+<span class="c1">#         (nx1) array of y values corresponding to the given parameters</span>
+<span class="c1">#</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     return height * np.exp(-(x - center) ** 2 / (2 * width ** 2)) + noise_lvl</span>
+<span class="c1">#</span>
+<span class="c1"># @register</span>
+<span class="c1"># def bigaussian(x, h1, w1, c1, h2, w2, c2, noise_lvl):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Sum of two gaussian functions.</span>
+<span class="c1">#</span>
+<span class="c1">#     Parameters</span>
+<span class="c1">#     ----------</span>
+<span class="c1">#     See :func: `gaussian`</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1">#     Returns</span>
+<span class="c1">#     -------</span>
+<span class="c1">#     gaussian: ndarray</span>
+<span class="c1">#         (nx1) array of y values corresponding to the given parameters</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     return (gaussian(x, h1, w1, c1, 0) +</span>
+<span class="c1">#             gaussian(x, h2, w2, c2, 0) + noise_lvl)</span>
+<span class="c1">#</span>
+<span class="c1"># @register</span>
+<span class="c1"># def trigaussian(x, h1, w1, c1, h2, w2, c2, h3, w3, c3, noise_lvl):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Sum of three gaussian function.</span>
+<span class="c1">#</span>
+<span class="c1">#     Parameters</span>
+<span class="c1">#     ----------</span>
+<span class="c1">#     See :func: `gaussian`</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1">#     Returns</span>
+<span class="c1">#     -------</span>
+<span class="c1">#     gaussian: ndarray</span>
+<span class="c1">#         (nx1) array of y values corresponding to the given parameters</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     return (gaussian(x, h1, w1, c1, 0) +</span>
+<span class="c1">#             gaussian(x, h2, w2, c2, 0) +</span>
+<span class="c1">#             gaussian(x, h3, w3, c3, 0) + noise_lvl)</span>
+<span class="c1">#</span>
+<span class="c1"># @register</span>
+<span class="c1"># class cylinder_projection():</span>
+<span class="c1">#     fit_parameters = (&quot;Intensity cylinder: &quot;, &quot;Center: &quot;, &quot;Inner Radius: &quot;, &quot;Outer Radius: &quot;, &quot;Offset: &quot;, &quot;Blur: &quot;)</span>
+<span class="c1">#</span>
+<span class="c1">#     @staticmethod</span>
+<span class="c1">#     def bounds(CM ,expansion):</span>
+<span class="c1">#         return np.array([[0, np.inf], [CM-10, CM+10],</span>
+<span class="c1">#                             [8*expansion, 40*expansion], [15*expansion, 60*expansion], [0,0.01],[9,11]]).T</span>
+<span class="c1">#</span>
+<span class="c1">#     @staticmethod</span>
+<span class="c1">#     def guess(height, CM, expansion):</span>
+<span class="c1">#         r_multi = expansion/2</span>
+<span class="c1">#         return [2 * height, CM, 25 * r_multi + 8.75, 25 * r_multi + 8.75 * 2, 0, 10]</span>
+<span class="c1">#</span>
+<span class="c1">#     @staticmethod</span>
+<span class="c1">#     def fit(x, intensity, center, r1, r2, offset, blur):</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         Intensity projection of a cylinder</span>
+<span class="c1">#</span>
+<span class="c1">#         Parameters</span>
+<span class="c1">#         ----------</span>
+<span class="c1">#         x: ndarray</span>
+<span class="c1">#             Coordinate space in x direction</span>
+<span class="c1">#         center: float</span>
+<span class="c1">#             Center coordinate of cylinder function</span>
+<span class="c1">#         intensity: float</span>
+<span class="c1">#             Maximum intensity of cylinder projection</span>
+<span class="c1">#         r1: float</span>
+<span class="c1">#             Inner radius</span>
+<span class="c1">#         r2: float</span>
+<span class="c1">#             Outer radius</span>
+<span class="c1">#         blur: flaot</span>
+<span class="c1">#             Convolve cylinder projection with gaussian blur of size &quot;blur&quot;</span>
+<span class="c1">#</span>
+<span class="c1">#         Returns</span>
+<span class="c1">#         -------</span>
+<span class="c1">#         y: ndarray</span>
+<span class="c1">#             y values of cylinder function</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         axis = x</span>
+<span class="c1">#         axis = axis-int(center)</span>
+<span class="c1">#         axis = np.abs(axis)</span>
+<span class="c1">#         y = np.zeros_like(axis)</span>
+<span class="c1">#         pos1 = np.where(axis&lt;r1)</span>
+<span class="c1">#         pos2 = np.where(np.logical_and(axis&gt;=r1, axis&lt;r2))</span>
+<span class="c1">#         y[pos1] = np.sqrt(r2 ** 2 - axis[pos1] ** 2) - np.sqrt(r1 ** 2 - axis[pos1] ** 2)</span>
+<span class="c1">#         y[pos2] = np.sqrt(r2 ** 2 - axis[pos2] ** 2)</span>
+<span class="c1">#         y = y/r2</span>
+<span class="c1">#         y = y*intensity</span>
+<span class="c1">#         y = y+offset</span>
+<span class="c1">#         if blur is not None:</span>
+<span class="c1">#             y = ndimage.gaussian_filter1d(y, sigma=blur)</span>
+<span class="c1">#         return y</span>
+<span class="c1">#</span>
+<span class="c1"># @register</span>
+<span class="c1"># def multi_cylinder_projection(x, i1, i2, i3, c, expansion, offset, blur):</span>
+<span class="c1">#     cyl1 = cylinder_projection(x, i1, c, 25*expansion/2-8.75*2, 25*expansion/2-8.75, 0, blur)</span>
+<span class="c1">#     cyl2 = cylinder_projection(x, i2, c, 42.5*expansion/2, 42.5*expansion/2+8.75, 0, blur)</span>
+<span class="c1">#     cyl3 = cylinder_projection(x, i3, c, 25*expansion/2+8.75,25*expansion/2+8.75*2, 0, blur)</span>
+<span class="c1">#</span>
+<span class="c1">#     return (cyl1+cyl2+cyl3+offset)</span>
 </pre></div>
 
           </div>
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../controllers.utility.html">Utility package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../controllers.fitter.html">Fitter package</a></li>
+</ul>
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../../index.html">Documentation overview</a><ul>
