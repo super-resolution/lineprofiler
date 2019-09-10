@@ -3,7 +3,7 @@
 Line profiler’s purpose is to evaluate datasets in a biological/biophysical context. The software recognizes line shaped structures in image data and computes their mean position and orientation with sub-pixel accuracy. For each line a mean intensity profile is calculated. Utilising the whole image the software prevents biases, caused by preselecting suitable data subsets. <br />
 A detailed explanation and documentation can be found ![here](https://line-profiler.readthedocs.io/en/latest/).
 ##Installation
-An executable can be found on zenodo.
+An executable can be found on zenodo. <br />
 ## Features:
 1. Find appropriate line profiles <br />
 ![alt text](https://github.com/super-resolution/line_profiler/blob/master/images/MIP.png)
