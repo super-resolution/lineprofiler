@@ -28,8 +28,7 @@ class MainWindow(Ui_MainWindow):
 
     def _add_handlers(self):
 
-        self.interface.current_processing_thread.sig.connect(self._increase_progress)
-        self.interface.current_processing_thread.done.connect(self._process_finished)
+
 
         self.pushButton_open.clicked.connect(
                 lambda: self._open_files())

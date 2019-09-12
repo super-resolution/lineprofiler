@@ -17,6 +17,7 @@ class QProcessThread(QSuperThread):
         self.upper_lim = 800
         self.lower_lim = 400
         self.distance_to_center = 900
+        self.three_channel = True
 
     def _set_image(self, slice):
         """
@@ -29,9 +30,12 @@ class QProcessThread(QSuperThread):
 
         """
         self.current_image_r = self.image_stack[0,slice].astype(np.uint16)
-        self.current_image = self.image_stack[1,slice].astype(np.uint16)*10
+        self.current_image = self.image_stack[1,slice].astype(np.uint16)
         self.image = np.clip(self.image_stack[1,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
-
+        try:
+            self.current_image_b = self.image_stack[2,slice].astype(np.uint16)
+        except IndexError:
+            self.three_channel = False
         #self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
         #self.candidate_indices = np.zeros((1))
         self.image_RGBA = np.zeros((self.current_image.shape[0],self.current_image.shape[1],4)).astype(np.uint16)#cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGBA).astype(np.uint16)*200
@@ -51,7 +55,8 @@ class QProcessThread(QSuperThread):
         mask = np.zeros((self.image.shape[0]+2, self.image.shape[1]+2), np.uint8)
         cv2.floodFill(im_floodfill, mask, (0, 0), 255)
         self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-
+        #cv2.imshow("flood",self.im_floodfill_inv)
+        #cv2.waitKey(0)
         #plt.imshow(self.im_floodfill_inv*255)
         shapes = self.shapes
         index = 0
@@ -82,6 +87,12 @@ class QProcessThread(QSuperThread):
             index += self.shapes[j]
         #plt.show()
 
+    def save_avg_profile(self, profile, name):
+        profile = np.array(profile)
+        profile_mean = np.mean(profile, axis=0)
+        X = np.arange(0,profile_mean.shape[0],1)
+        to_save = np.array([X,profile_mean]).T
+        np.savetxt(self.path + "\\"+name+".txt", to_save)
 
     def _show_profiles(self):
         """
@@ -91,17 +102,21 @@ class QProcessThread(QSuperThread):
 
         counter = -1
         count = self.gradient_table.shape[0]
+        distances = []
+        profiles_g = []
+        profiles_b = []
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
-            current_profile= []
+            current_profile = {'red':[], 'green':[]}
+            if self.three_channel:
+                current_profile.setdefault('blue',[])
+
             for j in range(self.shapes[i]):
                 counter+=1
 
                 points = self.gradient_table[counter,0:2]
                 #points = self.gradient_table[counter, 4:6]
                 gradients = self.gradient_table[counter,2:4]
-                #for i in range(points.shape[0]):
-                #print(counter)
 
                 k, l = points[0],points[1]
                 gradient = np.arctan(gradients[1]/gradients[0])+np.pi/2
@@ -112,12 +127,12 @@ class QProcessThread(QSuperThread):
                 end = [k + x_i, l + y_i]
                 num = np.sqrt(x_i ** 2 + y_i ** 2)
                 profile = line_profile(self.current_image_r, start, end, px_size=self.px_size, sampling=self.sampling)
-                try:
-                    print(np.argmax(profile))
-                    #x = np.where(profile>0)[0][0]
-                    #profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
-                except:
-                    continue
+                profile_g = line_profile(self.current_image, start, end, px_size=self.px_size, sampling=self.sampling)
+
+
+                self.sig.emit(int((counter) / count * 100))
+
+
                 if profile.shape[0]<499*self.px_size*100:
                     print("to short")
                     continue
@@ -127,27 +142,48 @@ class QProcessThread(QSuperThread):
                     continue
 
                 profile = profile[int(center-self.distance_to_center):int(center+self.distance_to_center)]
+                profile_g = profile_g[int(center-self.distance_to_center):int(center+self.distance_to_center)]
+
                 if profile.shape[0] != 2*self.distance_to_center:
                     continue
 
                 self.profiles.append(profile)
-                current_profile.append(profile)
+                current_profile['red'].append(profile)
+                current_profile['green'].append(profile_g)
+                if self.three_channel:
+                    profile_b = line_profile(self.current_image_b, start, end, px_size=self.px_size,
+                                             sampling=self.sampling)
+                    profile_b = profile_b[int(center - self.distance_to_center):int(center + self.distance_to_center)]
+                    current_profile['blue'].append(profile_b)
 
                 x, y = np.linspace(k - x_i, k +  x_i, 3*num), np.linspace(l - y_i, l + y_i, 3*num)
                 if x.min()>0 and y.min()>0 and x.max()<self.image_RGBA.shape[0] and y.max()< self.image_RGBA.shape[1]:
                     self.image_RGBA[x.astype(np.int32), y.astype(np.int32)] = np.array([color[0],color[1], color[2], color[3]])*50000
                 else:
                     print("out of bounds")
-                self.sig.emit(int((counter) / count* 100))
+                distances.append(distance)
+            if current_profile['red']:
+                red = np.array(current_profile['red'])
+                red_mean = np.mean(red, axis=0)
+                np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
+                self.save_avg_profile(current_profile['red'], "red_"+str(i))
 
-            red = np.array(current_profile)
-            red_mean = np.mean(red, axis=0)
-            np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
-            self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
-                             color, red.shape[0])
+                profiles_g += current_profile['green']
+                self.save_avg_profile(current_profile['green'], "green_"+str(i))
+
+                if self.three_channel:
+                    profiles_b += current_profile['blue']
+                    self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
+
+                self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
+                                 color, red.shape[0])
 
 
-            #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
+        self.save_avg_profile(profiles_g, "green_mean")
+        if self.three_channel:
+            self.save_avg_profile(profiles_b, "blue_mean")
+
+        np.savetxt(self.path + r"\distances_" + str(i) + ".txt", np.array(distances))
         self.images_RGBA.append(self.image_RGBA)
         cv2.imshow("asdf", self.image_RGBA)
         #self.images_RGB.append(line_profiles_raw)
@@ -176,7 +212,7 @@ class QProcessThread(QSuperThread):
 
             red = np.array(self.profiles)
             red_mean = np.mean(red, axis=0)
-            np.savetxt(self.path + r"\red_mean.txt", red_mean)
+            self.save_avg_profile(self.profiles,"red_mean")
             self.sig_plot_data.emit(red_mean, self.distance_to_center, 9999, self.path,
                                     (1.0, 0.0, 0.0, 1.0), red.shape[0])
 

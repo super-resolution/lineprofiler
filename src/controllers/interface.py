@@ -101,9 +101,12 @@ class Interface():
             self.main_window.spinBox_px_size.setValue(0.032)
             self.main_window.spinBox_gaussian_blur.setValue(9)
 
+
         self.set_handlers()
         self.current_processing_thread.sig_plot_data.connect(self.fit_data)
-
+        self.current_processing_thread.sig.connect(self.main_window._increase_progress)
+        self.current_processing_thread.done.connect(self.main_window._process_finished)
+        self.checkbox_values_changed()
         if self.current_image is not None:
             self.push_image_to_thread()
 

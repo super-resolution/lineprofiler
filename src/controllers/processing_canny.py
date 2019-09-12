@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import scipy
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import tifffile
 from controllers.utility import *
 from controllers.processing import QSuperThread
@@ -66,7 +66,7 @@ class QProcessThread(QSuperThread):
         cv2.floodFill(im_floodfill, mask, (self.image.shape[1]-1,0), 255)
 
         self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
-        cv2.imshow("asdf",self.im_floodfill_inv)
+        cv2.imshow("asdf",cv2.resize(self.im_floodfill_inv,(0,0), fx=0.5, fy=0.5))
         cv2.imshow("asdfg", self.image_canny)
         cv2.waitKey(0)
 
@@ -134,12 +134,12 @@ class QProcessThread(QSuperThread):
             else:
                 print("out of bounds")
 
-
-        red = np.array(current_profile)
-        red_mean = np.mean(red, axis=0)
-        np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
-        self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
-                                (1.0, 0, 0, 1.0), red.shape[0])
+        if current_profile:
+            red = np.array(current_profile)
+            red_mean = np.mean(red, axis=0)
+            np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
+            self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
+                                    (1.0, 0, 0, 1.0), red.shape[0])
 
 
             #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
@@ -169,7 +169,16 @@ class QProcessThread(QSuperThread):
                 print("nothing found in layer ", i)
             self.sig.emit(int((i+1)/self.image_stack.shape[1]*100))
         self.done.emit()
-        tifffile.imwrite(self.path + 'profiles.tif', self.image_RGBA.astype(np.uint16), photometric='rgb')
+        tifffile.imwrite(self.path + r'\profiles.tif', self.image_RGBA.astype(np.uint16), photometric='rgb')
+        new = np.zeros((self.current_image_r.shape[0], self.current_image_r.shape[1], 3))
+        new[..., 0] = self.current_image_r
+        new[..., 1] = self.current_image_r
+        new[..., 2] = self.current_image_r
+
+        new += np.asarray(self.image_RGBA)[...,0:3]
+        new = np.clip(new, 0, 65535)
+        tifffile.imwrite(self.path + r'\Image_overlay.tif', new[..., 0:3].astype(np.uint16), photometric='rgb')
+
         distanc = np.asarray(self.distances)
         np.savetxt(self.path + "distances.txt",distanc)
         histogram = np.histogram(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1),)
@@ -180,11 +189,11 @@ class QProcessThread(QSuperThread):
             hist[i,1] = histogram[1][i]
             hist[i,1] = histogram[1][i+1]
 
-        np.savetxt(self.path + "distances_histogram.txt",hist.astype(np.int16))
-        plt.hist(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1))
-        plt.savefig(self.path + 'Histogram.png')
+        np.savetxt(self.path + r"\distances_histogram.txt",hist.astype(np.int16))
+        #plt.hist(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1))
+        #plt.savefig(self.path + 'Histogram.png')
         #plt.suptitle('Histogram', fontsize=16)
-        plt.show()
+        #plt.show()
         file = open(self.path + "results.txt", "w")
         file.write("mean distance is: "+ str(np.mean(distanc))+ "\nste is: "+ str(np.std(distanc)/np.sqrt(len(distanc))))
         file.close()
@@ -195,7 +204,7 @@ class QProcessThread(QSuperThread):
         red_mean = np.mean(red, axis=0)
         self.sig_plot_data.emit(red_mean, 555, 9999, self.path,
                                 (1.0, 0.0, 0.0, 1.0), red.shape[0])
-        plt.plot(red_mean,"r")
+        #plt.plot(red_mean,"r")
         #green = np.array(self.profiles_green)
         #np.savetxt(self.path + "green.txt",green)
         #green_mean = np.mean(green, axis=0)
@@ -213,7 +222,7 @@ class QProcessThread(QSuperThread):
         np.savetxt(self.path + "mean_red.txt",red_mean)
         #np.savetxt(self.path + "mean_line_profiles_normed.txt",all_profiles_normed)
         #plt.savefig(self.path + "Profiles.png")
-        plt.show()
+        #plt.show()
 
     @property
     def distance_transform_th(self):
