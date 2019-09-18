@@ -11,10 +11,76 @@ from skimage.morphology import skeletonize_3d
 from skimage.measure import label
 from sklearn.neighbors import NearestNeighbors
 from scipy.interpolate import UnivariateSpline
+from scipy.signal import argrelextrema
+
 import networkx as nx
 
 from scipy import ndimage
 
+
+def create_floodfill_image(image):
+    """
+    Create a floodfill image applying a border with zeros around the image. This results in every boundary
+    point, being a source point for the floodfill algorithm.
+
+    Parameters
+    ----------
+    image: ndarray
+        2D input image
+
+    Returns
+    -------
+    floodfill image: ndarray
+        2D binary output image
+    """
+
+    ret, thresh = cv2.threshold(image.astype(np.uint8), 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    thresh = cv2.bitwise_not(thresh)
+    # make black border sorounding the image
+    thresh = cv2.copyMakeBorder(thresh,1,1,1,1,cv2.BORDER_CONSTANT)
+
+    # floodfill image to get interior forms
+    mask = np.zeros((thresh.shape[0] + 2, thresh.shape[1] + 2), np.uint8)
+    cv2.floodFill(thresh, mask, (0, 0), 255)
+
+    # discard border in returned image
+    return cv2.bitwise_not(thresh[1:thresh.shape[0]-1,1:thresh.shape[1]-1])
+
+
+def find_maximas(data, n=3):
+    """
+    Return the n biggest local maximas of a given 1d array.
+
+    Parameters
+    ----------
+    data: ndarray
+        Input data
+    n: int
+        Number of local maximas to find
+
+    Returns
+    -------
+    values: ndarray
+        Indices of local maximas.
+    """
+    maximas = argrelextrema(data, np.greater, order=2)
+    maxima_value = data[maximas]
+    values = np.ones(n)
+    maximum = 0
+    for i in range(n):
+        try:
+            index = np.argmax(maxima_value)
+            if maxima_value[index] < 0.7 * maximum:
+                values[i] = values[0]
+                continue
+
+            maximum = maxima_value[index]
+            maxima_value[index] = 0
+
+            values[i] = maximas[0][index]
+        except:
+            print("zero exception")
+    return values
 
 def create_gradient_image(image, blur, sobel=9):
     """

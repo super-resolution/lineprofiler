@@ -36,31 +36,31 @@ class QProcessThread(QSuperThread):
             self.current_image_b = self.image_stack[2,slice].astype(np.uint16)
         except IndexError:
             self.three_channel = False
-        #self.candidates = np.zeros((self.image.shape[0],self.image.shape[1]))
-        #self.candidate_indices = np.zeros((1))
         self.image_RGBA = np.zeros((self.current_image.shape[0],self.current_image.shape[1],4)).astype(np.uint16)#cv2.cvtColor(self.current_image,cv2.COLOR_GRAY2RGBA).astype(np.uint16)*200
         # spline fit skeletonized image
         self.gradient_table,self.shapes = compute_line_orientation(self.image, self._blur, expansion=self._spline_parameter, expansion2=self._spline_parameter)
+
         self._fillhole_image()
 
     def _fillhole_image(self):
+        """
+        Build a fillhole image
+
+        Returns
+        -------
+
+        """
         image = self.current_image_r/self._intensity_threshold
-        image = np.clip(image,0,255).astype(np.uint8)
-        ret, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        thresh = cv2.bitwise_not(thresh)
-        #cv2.imshow("flood",thresh)
-        #cv2.waitKey(0)
-        # flood image to get interior forms
-        im_floodfill = thresh.copy()
-        mask = np.zeros((self.image.shape[0]+2, self.image.shape[1]+2), np.uint8)
-        cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-        self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
+        image = np.clip(image,0,255)
+
+
+        self.im_floodfill_inv = create_floodfill_image(image)
+
         #cv2.imshow("flood",self.im_floodfill_inv)
         #cv2.waitKey(0)
         #plt.imshow(self.im_floodfill_inv*255)
-        shapes = self.shapes
-        index = 0
         spline_positions = self.gradient_table[:,0:2]
+
         indices = []
         index = 0
         to_cut = 0
@@ -79,12 +79,12 @@ class QProcessThread(QSuperThread):
 
         self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
 
-        spline_positions = self.gradient_table[:, 0:2]
-        index = 0
-        for j in range(len(self.shapes)):
+        #spline_positions = self.gradient_table[:, 0:2]
+        #index = 0
+        #for j in range(len(self.shapes)):
             #plt.plot(spline_positions[index:index + self.shapes[j], 1], spline_positions[index:index + self.shapes[j], 0],
                         #color='red')
-            index += self.shapes[j]
+            #index += self.shapes[j]
         #plt.show()
 
     def save_avg_profile(self, profile, name):
@@ -216,7 +216,7 @@ class QProcessThread(QSuperThread):
             self.sig_plot_data.emit(red_mean, self.distance_to_center, 9999, self.path,
                                     (1.0, 0.0, 0.0, 1.0), red.shape[0])
 
-            np.savetxt(self.path+r"\red.txt",red)
+            np.savetxt(self.path+r"\red.txt",red.T)
         except:
             raise
         finally:

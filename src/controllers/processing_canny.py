@@ -52,20 +52,9 @@ class QProcessThread(QSuperThread):
 
         # canny and gradient images
         self.image_canny = cv2.Canny(image, 150, 220)
-        # build threshold image
-        ret, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        thresh = cv2.bitwise_not(thresh)
-        #cv2.imshow("flood",thresh)
-        #cv2.waitKey(0)
-        # flood image to get interior forms
-        im_floodfill = thresh.copy()
-        mask = np.zeros((self.image.shape[0]+2, self.image.shape[1]+2), np.uint8)
-        cv2.floodFill(im_floodfill, mask, (0, 0), 255)
-        cv2.floodFill(im_floodfill, mask, (self.image.shape[1]-1,self.image.shape[0]-1), 255)
-        cv2.floodFill(im_floodfill, mask, (0,self.image.shape[0]-1), 255)
-        cv2.floodFill(im_floodfill, mask, (self.image.shape[1]-1,0), 255)
 
-        self.im_floodfill_inv = cv2.bitwise_not(im_floodfill)
+        self.im_floodfill_inv = create_floodfill_image(image)
+
         cv2.imshow("asdf",cv2.resize(self.im_floodfill_inv,(0,0), fx=0.5, fy=0.5))
         cv2.imshow("asdfg", self.image_canny)
         cv2.waitKey(0)
@@ -125,6 +114,7 @@ class QProcessThread(QSuperThread):
 
             self.profiles.append(profile)
             current_profile.append(profile)
+            self.distances.append(distance)
 
             x, y = np.linspace(k - x_i, k + x_i, 3 * num), np.linspace(l - y_i, l + y_i, 3 * num)
             if x.min() > 0 and y.min() > 0 and x.max() < self.image_RGBA.shape[0] and y.max() < self.image_RGBA.shape[
@@ -180,7 +170,7 @@ class QProcessThread(QSuperThread):
         tifffile.imwrite(self.path + r'\Image_overlay.tif', new[..., 0:3].astype(np.uint16), photometric='rgb')
 
         distanc = np.asarray(self.distances)
-        np.savetxt(self.path + "distances.txt",distanc)
+        np.savetxt(self.path + r"\distances.txt",distanc)
         histogram = np.histogram(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1),)
         z = int((self.upper_lim-self.lower_lim)/10)
         hist = np.zeros((z,3))
@@ -189,40 +179,20 @@ class QProcessThread(QSuperThread):
             hist[i,1] = histogram[1][i]
             hist[i,1] = histogram[1][i+1]
 
-        np.savetxt(self.path + r"\distances_histogram.txt",hist.astype(np.int16))
-        #plt.hist(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1))
-        #plt.savefig(self.path + 'Histogram.png')
-        #plt.suptitle('Histogram', fontsize=16)
-        #plt.show()
-        file = open(self.path + "results.txt", "w")
+
+        file = open(self.path + r"\results.txt", "w")
         file.write("mean distance is: "+ str(np.mean(distanc))+ "\nste is: "+ str(np.std(distanc)/np.sqrt(len(distanc))))
         file.close()
         print("mean distance is:",np.mean(distanc))
         print("ste is:", np.std(distanc)/np.sqrt(len(distanc)))
         red = np.array(self.profiles)
-        np.savetxt(self.path +  "red.txt",red)
+        np.savetxt(self.path +  r"\red.txt",red)
         red_mean = np.mean(red, axis=0)
         self.sig_plot_data.emit(red_mean, 555, 9999, self.path,
                                 (1.0, 0.0, 0.0, 1.0), red.shape[0])
-        #plt.plot(red_mean,"r")
-        #green = np.array(self.profiles_green)
-        #np.savetxt(self.path + "green.txt",green)
-        #green_mean = np.mean(green, axis=0)
-        #plt.plot(green_mean, "g")
-        # if not self.two_channel:
-        #     blue = np.array(self.profiles_blue)
-        #     np.savetxt(self.path + "blue.txt",blue)
-        #     blue_mean = np.mean(blue, axis=0)
-        #     all_profiles = np.swapaxes(np.array([red_mean, green_mean,blue_mean,]),0,1)
-        #     all_profiles_normed = np.swapaxes(np.array([red_mean/np.linalg.norm(red_mean), green_mean/np.linalg.norm(green_mean),blue_mean/np.linalg.norm(blue_mean),]),0,1)
-        #     plt.plot(blue_mean, "b")
-        # else:
-        #     all_profiles = np.swapaxes(np.array([red_mean, green_mean,]),0,1)
-        #     all_profiles_normed = np.swapaxes(np.array([red_mean/np.linalg.norm(red_mean), green_mean/np.linalg.norm(green_mean),]),0,1)
-        np.savetxt(self.path + "mean_red.txt",red_mean)
-        #np.savetxt(self.path + "mean_line_profiles_normed.txt",all_profiles_normed)
-        #plt.savefig(self.path + "Profiles.png")
-        #plt.show()
+
+        np.savetxt(self.path + r"\mean_red.txt",red_mean)
+
 
     @property
     def distance_transform_th(self):

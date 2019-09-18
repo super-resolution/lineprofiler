@@ -111,22 +111,11 @@ class Interface():
             self.push_image_to_thread()
 
 
-
-    #@QtCore.pyqtSlot(int)
-    #def set_process_blur(self, value):
-    #    self.current_processing_thread.blur = value
-
-    #@QtCore.pyqtSlot(int)
     def set_process_lower_lim(self, value):
         self.current_processing_thread.lower_lim = value
 
-    #@QtCore.pyqtSlot(int)
     def set_process_upper_lim(self, value):
         self.current_processing_thread.upper_lim = value
-
-    #def set_px_size(self, value):
-        #self.pixel_size = value
-        #self.current_processing_thread.pixel_size = value
 
     def set_channel_visible(self, i, enabled):
         self.current_image.channel = (i,enabled)
@@ -136,15 +125,10 @@ class Interface():
         self.current_image.index = ch,i
 
     def slider_threshold_changed(self):
-        #self.current_processing_thread.intensity_threshold = th
-        #self.display.intensity_threshold = th
         try:
             self.display.show_image()
         except:
             ValueError("No image")
-
-    #def spline_parameter_changed(self, value):
-    #    self.current_processing_thread.spline_parameter = value
 
     def expansion_factor_changed(self, value):
         self.fitter.expansion = value
@@ -159,7 +143,6 @@ class Interface():
         self.fitter.fit_functions = functions
 
     def push_image_to_thread(self):
-        #px_size = self.main_window.spinBox_px_size.value()
         self.current_processing_thread.set_data(self.current_image.data, self.current_image.file_path)
 
     def show_image(self, image):
