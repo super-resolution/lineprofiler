@@ -24,11 +24,11 @@ class QProcessThread(QSuperThread):
 
         """
         self.current_image = self.image_stack[1,slice].astype(np.uint16)*10
-        self.image = np.clip(self.image_stack[1,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
-
-        self.image_RGBA = np.zeros((self.current_image.shape[0],self.current_image.shape[1],4)).astype(np.uint16)
+        processing_image = np.clip(self.image_stack[1,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
         # spline fit skeletonized image
-        self.gradient_table,self.shapes = compute_line_orientation(self.image, self.blur, expansion=self._spline_parameter, expansion2=self._spline_parameter)
+        self.gradient_table, self.shapes = compute_line_orientation(
+            processing_image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
+
 
 
     def _show_profiles(self):
@@ -43,22 +43,17 @@ class QProcessThread(QSuperThread):
             current_profile= []
             for j in range(self.shapes[i]):
                 counter+=1
+                self.sig.emit(int((counter) / count* 100))
 
-                points = self.gradient_table[counter,0:2]
-                #points = self.gradient_table[counter, 4:6]
-                gradients = self.gradient_table[counter,2:4]
+                source_point = self.gradient_table[counter,0:2]
+                gradient = self.gradient_table[counter,2:4]
+                gradient = np.arctan(gradient[1]/gradient[0])+np.pi/2
 
-                k, l = points[0],points[1]
-                gradient = np.arctan(gradients[1]/gradients[0])+np.pi/2
+                line = line_parameters(source_point, gradient)
 
-                x_i = -30 * np.cos(gradient)
-                y_i = -30 * np.sin(gradient)
-                start = [k - x_i, l - y_i]
-                end = [k + x_i, l + y_i]
-                num = np.sqrt(x_i ** 2 + y_i ** 2)
-                profile = line_profile(self.current_image, start, end, px_size=self._px_size, sampling=self.sampling)
+                profile = line_profile(self.current_image, line['start'], line['end'], px_size=self._px_size, sampling=self.sampling)
                 try:
-                    print(np.argmax(profile))
+                    #print(np.argmax(profile))
                     profile = profile[int(50*self._px_size*100):int(550*self._px_size*100)]
                 except:
                     continue
@@ -69,19 +64,28 @@ class QProcessThread(QSuperThread):
                 self.profiles.append(profile)
                 current_profile.append(profile)
 
-                x, y = np.linspace(k - x_i, k +  x_i, 3*num), np.linspace(l - y_i, l + y_i, 3*num)
-                if x.min()>0 and y.min()>0 and x.max()<self.image_RGBA.shape[0] and y.max()< self.image_RGBA.shape[1]:
-                    self.image_RGBA[x.astype(np.int32), y.astype(np.int32)] = np.array([color[0],color[1], color[2], color[3]])*50000
+                if line['X'].min() > 0 and line['Y'].min() > 0 and \
+                        line['X'].max() < self.image_RGBA.shape[0] and line['Y'].max() < self.image_RGBA.shape[1]:
+
+                    self.image_RGBA[line['X'].astype(np.int32), line['Y'].astype(np.int32)] = np.array(
+                        [1.0, 0, 0, 1.0]) * 50000
                 else:
                     print("out of bounds")
-                self.sig.emit(int((counter) / count* 100))
 
             red = np.array(current_profile)
             red_mean = np.mean(red, axis=0)
             np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
             center = 30 * self._px_size * 100 * self.sampling-(50*self._px_size*100)
             self.sig_plot_data.emit(red_mean, center, i, self.path, color, red.shape[0])
-            #line_profiles_raw[x.astype(np.int32), y.astype(np.int32)] = np.array([50000, 0, 0])
+
+        red = np.array(self.profiles)
+        red_mean = np.mean(red, axis=0)
+        np.savetxt(self.path + r"\red_mean.txt", red_mean)
+        self.sig_plot_data.emit(red_mean, 30 * self._px_size * 100 * self.sampling - (50 * self._px_size * 100), 9999,
+                                self.path,
+                                (1.0, 0.0, 0.0, 1.0), red.shape[0])
+        np.savetxt(self.path + r"\red.txt", red)
+
         self.images_RGBA.append(self.image_RGBA)
         cv2.imshow("asdf", self.image_RGBA)
 
@@ -108,16 +112,7 @@ class QProcessThread(QSuperThread):
             new += np.asarray(self.images_RGBA)[0,:,:,0:3]
             new = np.clip(new, 0,65535)
             tifffile.imwrite(self.path+r'\Image_overlay.tif', new[...,0:3].astype(np.uint16), photometric='rgb')
-
-
-            red = np.array(self.profiles)
-            red_mean = np.mean(red, axis=0)
-            np.savetxt(self.path + r"\red_mean.txt", red_mean)
-            self.sig_plot_data.emit(red_mean, 30 * self._px_size * 100 * self.sampling-(50*self._px_size*100), 9999, self.path,
-                                    (1.0, 0.0, 0.0, 1.0), red.shape[0])
-
-            np.savetxt(self.path+r"\red.txt",red)
-        except:
+        except EnvironmentError:
             raise
         finally:
             self.done.emit()

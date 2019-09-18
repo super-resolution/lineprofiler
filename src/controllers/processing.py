@@ -20,6 +20,8 @@ class QSuperThread(QThread):
         self.colormap = cm.gist_ncar
         self.sampling = 10
         self._spline_parameter = 1.0
+        self.image_stack = None
+
 
     def set_data(self, image_stack, f_name):
         """
@@ -40,6 +42,7 @@ class QSuperThread(QThread):
             os.makedirs(path)
         self.path = path
         self.image_stack = image_stack[0:3]
+        self.image_RGBA = np.zeros((self.image_stack.shape[-2],self.image_stack.shape[-1],4)).astype(np.uint16)
         self.results = np.zeros((self.image_stack.shape[1], 2))
         self.profiles = []
         self.profiles_green = []
@@ -79,3 +82,8 @@ class QSuperThread(QThread):
     @spline_parameter.setter
     def spline_parameter(self, value):
         self._spline_parameter = value
+
+
+
+def profile_generator():
+    profiles = {"red":[], "green":[], "blue":[]}

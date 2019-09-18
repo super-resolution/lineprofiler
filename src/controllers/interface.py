@@ -1,12 +1,6 @@
-
 from controllers.display import *
-from controllers import processing_SNC
-from controllers import processing_green
-from controllers import processing_canny
-
-from controllers.utility import *
+from controllers import processing_SNC, processing_microtuboli, processing_canny
 from controllers.fitter import *
-from PyQt5 import QtCore
 
 class Interface():
     def __init__(self, main_window):
@@ -57,7 +51,7 @@ class Interface():
     #@QtCore.pyqtSlot(float)
     def set_operation_mode(self, value):
         if value == "Microtuboli":
-            self.current_processing_thread = processing_green.QProcessThread()
+            self.current_processing_thread = processing_microtuboli.QProcessThread()
 
             self.main_window.checkBox_multi_cylidner_projection.setEnabled(True)
             self.main_window.checkBox_multi_cylidner_projection.setChecked(True)
@@ -146,9 +140,9 @@ class Interface():
         self.current_processing_thread.set_data(self.current_image.data, self.current_image.file_path)
 
     def show_image(self, image):
-        if image[0].isParsingNeeded:
-            image[0].parse(calibration_px=self.pixel_size)
-        self.current_image = image[0]
+        if image.isParsingNeeded:
+            image.parse(calibration_px=self.pixel_size)
+        self.current_image = image
         for i in range(self.current_image.metaData["ShapeSizeC"]):
             box = getattr(self.main_window, "checkBox_channel" + str(i))
             box.setEnabled(True)

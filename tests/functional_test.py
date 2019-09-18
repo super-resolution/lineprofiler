@@ -1,6 +1,7 @@
 import unittest
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from controllers.random_GUI import MainWindow
+from controllers.image import *
 import sys
 import numpy as np
 
@@ -13,9 +14,15 @@ class FunctionalTestLineProfiler(unittest.TestCase):
 
         self.mainWindow.init_component(qtWindow)
         qtWindow.show()
+        self.interface = self.mainWindow.interface
 
     def test_open_file(self):
-        pass
+        image = ImageSIM(r"C:\Users\biophys\Pictures\Camera Roll\MAX_SIM3czi_Structured Illumination-CH1-CH2.tif")
+        image.parse()
+        self.assertIsNotNone(image.data)
+        self.interface.show_image(image)
+        np.testing.assert_almost_equal(self.interface.current_processing_thread.image_stack, image.data)
+        print("Open file successfully tested")
 
     def processing_configurations(self):
         self.assertEqual(self.mainWindow.interface.current_processing_thread.blur,

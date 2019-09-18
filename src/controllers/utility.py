@@ -17,6 +17,34 @@ import networkx as nx
 
 from scipy import ndimage
 
+def line_parameters(point, direction):
+    """
+
+    Parameters
+    ----------
+    point: tuple
+        starting point for line
+    direction: float
+        direction of line
+
+
+    Returns
+    -------
+    result: dict
+        Containing arrays with X and Y coordinates of line as well as start and endpoint
+    """
+    x_i = -40 * np.cos(direction)
+    y_i = -40 * np.sin(direction)
+    result = dict()
+    result['start'] = [point[0] - x_i, point[1] - y_i]
+    result['end'] = [point[0] + x_i, point[1] + y_i]
+    # length of line
+    num = np.sqrt(x_i ** 2 + y_i ** 2)
+    result['X'] = np.linspace(point[0] - x_i, point[0] + x_i, 3 * num)
+    result['Y'] = np.linspace(point[1] - y_i, point[1] + y_i, 3 * num)
+
+    return result
+
 
 def create_floodfill_image(image):
     """

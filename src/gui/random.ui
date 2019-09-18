@@ -371,7 +371,7 @@ border-bottom-left-radius: 10px;
                      <number>99999</number>
                     </property>
                     <property name="value">
-                     <number>1500</number>
+                     <number>800</number>
                     </property>
                    </widget>
                   </item>
@@ -439,17 +439,17 @@ border-bottom-left-radius: 10px;
                    <widget class="QComboBox" name="comboBox_operation_mode">
                     <item>
                      <property name="text">
-                      <string>SNC one channel</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
                       <string>Microtuboli</string>
                      </property>
                     </item>
                     <item>
                      <property name="text">
                       <string>SNC</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>SNC one channel</string>
                      </property>
                     </item>
                    </widget>
@@ -539,7 +539,7 @@ border-bottom-left-radius: 10px;
                       <double>0.100000000000000</double>
                      </property>
                      <property name="value">
-                      <double>3.500000000000000</double>
+                      <double>0.000000000000000</double>
                      </property>
                     </widget>
                    </item>
@@ -552,7 +552,7 @@ border-bottom-left-radius: 10px;
                       <number>100</number>
                      </property>
                      <property name="value">
-                      <number>35</number>
+                      <number>0</number>
                      </property>
                      <property name="orientation">
                       <enum>Qt::Horizontal</enum>

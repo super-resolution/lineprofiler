@@ -35,7 +35,7 @@ class MainWindow(Ui_MainWindow):
         self.pushButton_close_all.clicked.connect(
                 lambda : self._close_all())
         self.pushButton_show.clicked.connect(
-                lambda: self.interface.show_image(self.image_list.selectedItems()))
+                lambda: self.interface.show_image(self.image_list.selectedItems()[0]))
         self.pushButton_close.clicked.connect(
             lambda: [self._close_image(i.row()) for i in self.image_list.selectedIndexes()]
         )
