@@ -28,7 +28,14 @@ Currently line profiler support's two modes:
 .. note::
    
    **SNC_canny** mode should only be used if the second SNC channel can't be evaluated. **SNC** mode usually delivers superior results.
-   
+
+
+Getting started
+===============
+
+Line Profiler is precompiled for Windows and the binaries are available on `Zenodo <https://doi.org/10.5281/zenodo.3447793>`_.
+Source code and user guide can be found on `Github <https://github.com/super-resolution/line_profiler>`_.
+
 Functionality
 ==================
 
