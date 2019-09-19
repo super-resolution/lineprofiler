@@ -1,16 +1,10 @@
 # Line Profiler
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2643214.svg)](https://doi.org/10.5281/zenodo.2643214) [![Documentation Status](https://readthedocs.org/projects/line-profiler/badge/?version=latest)](https://line-profiler.readthedocs.io/en/latest/?badge=latest) <br />
-Line profiler’s purpose is to evaluate datasets in a biological/biophysical context. The software recognizes line shaped structures in image data and computes their mean position and orientation with sub-pixel accuracy. For each line a mean intensity profile is calculated. Utilising the whole image the software prevents biases, caused by preselecting suitable data subsets. <br />
-A detailed explanation and documentation can be found ![here](https://line-profiler.readthedocs.io/en/latest/).
+Line profiler’s purpose is to evaluate datasets in a biological/biophysical context. The software recognizes line shaped structures in image data and computes their mean position and orientation with sub-pixel accuracy. For each line a mean intensity profile is calculated. Utilising the whole image the software prevents biases, caused by preselecting data subsets. <br />
+A detailed explanation and documentation can be found [here](https://line-profiler.readthedocs.io/en/latest/).
 ## Installation
 An executable can be found on zenodo. <br />
 ## Features:
-1. Find appropriate line profiles <br />
-![alt text](https://github.com/super-resolution/line_profiler/blob/master/images/MIP.png)
-2. Get a histogram of the SNC distance <br />
-![alt text](https://github.com/super-resolution/line_profiler/blob/master/images/Histogram.png)
-3. Mean of all line profiles <br />
-![alt text](https://github.com/super-resolution/line_profiler/blob/master/images/profiles.png)
 
 ## References:
 (1) Nobuyuki Otsu: A threshold selection method from grey level histograms. In: IEEE Transactions on Systems, Man, and Cybernetics. New York, 9.1979, S. 62–66. ISSN 1083-4419 <br />
