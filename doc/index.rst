@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to line profiler's documentation!
+Welcome to Line Profiler's documentation!
 =========================================
 
 Line profiler's purpose is to evaluate datasets in a biological/biophysical context. The software recognizes line shaped 
@@ -21,28 +21,40 @@ Currently line profiler support's two modes:
    
     **SNC:** In SNC mode the profiles are collected in the first color channel while using the second channel for fitting. This mode allows the usage of the parameters upper and lower limit. Profiles featuring two maximas with a distance, exceeding the restrictions are excluded. As well as profiles without two maximas.
 
+.. figure:: fig/SNC_canny.png
+
+	**SNC_canny**: In SNC_canny mode profiling and fitting happens in the first channel. The valid parameters for SNC and SNC_canny mode are identical.
+	
+.. note::
+   
+   **SNC_canny** mode should only be used if the second SNC channel can't be evaluated. **SNC** mode usually delivers superior results.
+   
 Functionality
 ==================
 
 The concept of Line Profiler is to recongnize line like structures, reduce them to continous coordinates, smooth them, profile them and evaluate the results.
 Therefore, multiple processing steps are nescesarry:
 
-1) The input image is convolved with a gaussian blur, compensating noise and intensity fluctuations. Using Lee's algorithm (1) a
+1) **[All modes]** The input image is convolved with a gaussian blur, compensating noise and intensity fluctuations. Using Lee's algorithm (1) a
 skeletonize image is constructed reducing all expanded shapes to lines with 1 pixel width.
 
-2) The function :ref:`compute_line_orientation<Utility package>` rearanges all pixels unequal zero, to continuous lines. 
+2) **[Microtuboli, SNC]** The function :ref:`compute_line_orientation<Utility package>` rearanges all pixels unequal zero, to continuous lines. 
 Meaning, i.e. that sharp edges are excluded, dividing one line in two independendly fitted structures. 
 The pixel coordinates of each line are fitted with a c-spline. The local derivative of the c-spline gives the direction 
 for placing the line profiles.
 
-2.1) In SNC mode a :ref:`floodfill<floodfill>` image is constructed. A floodfill image is a binary image containing ones for
+3) **[SNC, SNC_canny]** In SNC mode a :ref:`floodfill<floodfill>` image is constructed. A floodfill image is a binary image containing ones for
 encapsuled structures and zeros everywhere else. Applying a distance transform gives the distance of each pixel unequal to zero, to the next
 zero pixel. The maximum value of the distance transform gives the desired positions in the center of the 2D projected SNC helix.
 All pixels in the floodfill image with a distance transform smaller than 0.4 of the maximum distance value are set to zero.
 Finally an ``and`` operation is applied to the line coordinates and the floodfill image, excluding all coordinates which aren't located
 in the desired area.
 
-3) For each line and for the overall image a mean line profile is computed. The result can be fitted with a couple of suitable
+4) **[SNC_canny]** The channel containing the helix structure is processed with an edge finding algorithm (Canny).
+For each candidate pixel (pixel unequal zero from step 3) the closest egde pixel is selected und the profile is constructed 
+according to it's gradient direction.
+
+5) **[All modes]** For each line and for the overall image a mean line profile is computed. The result can be fitted with a couple of suitable
 functions described in :ref:`fitter<fitter>`.
 
 .. note::

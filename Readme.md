@@ -18,10 +18,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## Features:
-
 ## References:
 (1) Nobuyuki Otsu: A threshold selection method from grey level histograms. In: IEEE Transactions on Systems, Man, and Cybernetics. New York, 9.1979, S. 62–66. ISSN 1083-4419 <br />
 (2) Felzenszwalb, Pedro F. and Huttenlocher, Daniel P. Distance Transforms of Sampled Functions, TR2004-1963, TR2004-1963 (2004) <br />
 (3) JOHN CANNY,A Computational Approach to Edge Detection, Editor(s): Martin A. Fischler, Oscar Firschein, Readings in Computer Vision, Morgan Kaufmann, 1987, Pages 184-203, ISBN 9780080515816, https://doi.org/10.1016/B978-0-08-051581-6.50024-6. <br />
-
