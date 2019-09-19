@@ -595,7 +595,7 @@ class Ui_MainWindow(object):
         self.label_blur.setText(_translate("MainWindow", "Gaussian blur"))
         self.px_size_label.setText(_translate("MainWindow", "Pixel size [micro meter]"))
         self.label_3.setText(_translate("MainWindow", "Spline parameter"))
-        self.comboBox_operation_mode.setItemText(0, _translate("MainWindow", "Microtuboli"))
+        self.comboBox_operation_mode.setItemText(0, _translate("MainWindow", "Microtubule"))
         self.comboBox_operation_mode.setItemText(1, _translate("MainWindow", "SNC"))
         self.comboBox_operation_mode.setItemText(2, _translate("MainWindow", "SNC one channel"))
         self.groupBox_config_calibration.setTitle(_translate("MainWindow", "Intensity threshold"))

@@ -48,7 +48,7 @@ class Fit:
             cyl(i_2, c, 42.5e_x/2, 42.5e_x/2+a) +\\
             cyl(i_3, c, 25e_x/2+a,25e_x/2+2a) + b`,
 
-            this function assumes that a micrutuboli sample was pre- and post labled under expansion microscopy
+            this function assumes that a micrutubule sample was pre- and post labled under expansion microscopy
             (expansion factor :math:`e_x`) the second cyl(cylinder_projection) compensates for pre labled
             fluorophores while the first and last cyl fit, post labled fluorophores considering a free orientation
             of the second antibody (antibody width a = 8.75).

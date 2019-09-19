@@ -439,7 +439,7 @@ border-bottom-left-radius: 10px;
                    <widget class="QComboBox" name="comboBox_operation_mode">
                     <item>
                      <property name="text">
-                      <string>Microtuboli</string>
+                      <string>Microtubule</string>
                      </property>
                     </item>
                     <item>

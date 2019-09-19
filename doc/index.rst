@@ -15,7 +15,7 @@ Currently line profiler support's two modes:
 
 .. figure:: fig/Microtub.jpg
    
-    **Microtuboli:** In Microtuboli mode profiles are by default fitted with the intensity projection of a cylinder, applying the theoretical values for inner, outer radius and resolution.
+    **Microtubuli:** In Microtubuli mode profiles are by default fitted with the intensity projection of a cylinder, applying the theoretical values for inner, outer radius and resolution.
 
 .. figure:: fig/SNC.jpg
    
@@ -45,7 +45,7 @@ Therefore, multiple processing steps are nescesarry:
 1) **[All modes]** The input image is convolved with a gaussian blur, compensating noise and intensity fluctuations. Using Lee's algorithm (1) a
 skeletonize image is constructed reducing all expanded shapes to lines with 1 pixel width.
 
-2) **[Microtuboli, SNC]** The function :ref:`compute_line_orientation<Utility package>` rearanges all pixels unequal zero, to continuous lines. 
+2) **[Microtubuli, SNC]** The function :ref:`compute_line_orientation<Utility package>` rearanges all pixels unequal zero, to continuous lines. 
 Meaning, i.e. that sharp edges are excluded, dividing one line in two independendly fitted structures. 
 The pixel coordinates of each line are fitted with a c-spline. The local derivative of the c-spline gives the direction 
 for placing the line profiles.
@@ -66,7 +66,7 @@ functions described in :ref:`fitter<fitter>`.
 
 .. note::
    
-   In Microtuboli mode line profiles are aligned according to the fitted spline. 
+   In Microtubuli mode line profiles are aligned according to the fitted spline. 
    
    In SNC mode line profiles are aligned according to the center of the first and second global maximum.
 
