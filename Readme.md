@@ -4,6 +4,20 @@ Line profiler’s purpose is to evaluate datasets in a biological/biophysical co
 A detailed explanation and documentation can be found [here](https://line-profiler.readthedocs.io/en/latest/).
 ## Installation
 An executable can be found on zenodo. <br />
+If this doesn't work for you:
+
+1. Clone git repository
+2. Open cmd and cd to repository
+3. Install requirements with:
+```
+pip install -r requirements.txt
+```
+4. cd to src
+5. Run Line Profiler with:
+```
+python main.py
+```
+
 ## Features:
 
 ## References:
