@@ -22,7 +22,11 @@ import sys
 sys.path.insert(0, os.path.abspath('../src/'))
 sys.path.insert(0, "C:\Users\biophys\PycharmProjects\Fabi\src")
 
+import mock
 
+MOCK_MODULES = ['matplotlib', 'numba', 'PyQt5', 'PyQt5.QtGui','pyqtgraph', 'pyqtgraph.opengl','pyqtgraph.opengl.GLGraphicsItem', 'PyQt5.QtCore' ,'lxml']
+for mod_name in MOCK_MODULES:
+   sys.modules[mod_name] = mock.Mock() 
 
 # -- General configuration ------------------------------------------------
 
