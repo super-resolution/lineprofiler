@@ -1,5 +1,5 @@
 from controllers.display import *
-from controllers import processing_SNC, processing_microtuboli, processing_canny
+from controllers import processing_SNC, processing_microtubule, processing_canny
 from controllers.fitter import *
 
 class Interface():
@@ -50,8 +50,8 @@ class Interface():
 
     #@QtCore.pyqtSlot(float)
     def set_operation_mode(self, value):
-        if value == "Microtuboli":
-            self.current_processing_thread = processing_microtuboli.QProcessThread()
+        if value == "Microtubule":
+            self.current_processing_thread = processing_microtubule.QProcessThread()
 
             self.main_window.checkBox_multi_cylidner_projection.setEnabled(True)
             self.main_window.checkBox_multi_cylidner_projection.setChecked(True)

@@ -3,7 +3,7 @@ import unittest
 from src.controllers.fitter import *
 from src.controllers.utility import *
 from src.controllers.image import ImageSIM
-from src.controllers import processing_SNC, processing_microtuboli, processing_canny
+from src.controllers import processing_SNC, processing_microtubule, processing_canny
 
 import numpy as np
 import cv2
@@ -61,7 +61,7 @@ class FitterTest(TestCase):
         thread.run()
 
     def test_processing_microtuboli(self):
-        thread = processing_microtuboli.QProcessThread()
+        thread = processing_microtubule.QProcessThread()
         thread.set_data(self.data, self.path)
         thread.blur = 20
         thread.px_size = 0.032

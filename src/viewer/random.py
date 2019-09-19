@@ -571,7 +571,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusBar)
 
         self.retranslateUi(MainWindow)
-        self.tab_5.setCurrentIndex(1)
+        self.tab_5.setCurrentIndex(0)
         self.comboBox_channel3_color.setCurrentIndex(3)
         self.comboBox_channel0_color.setCurrentIndex(0)
         self.comboBox_channel2_color.setCurrentIndex(2)
