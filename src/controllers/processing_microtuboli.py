@@ -75,13 +75,13 @@ class QProcessThread(QSuperThread):
             red = np.array(current_profile)
             red_mean = np.mean(red, axis=0)
             np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
-            center = 30 * self._px_size * 100 * self.sampling-(50*self._px_size*100)
+            center = 30 * self.px_size * 100 * self.sampling-(50*self.px_size*100)
             self.sig_plot_data.emit(red_mean, center, i, self.path, color, red.shape[0])
 
         red = np.array(self.profiles)
         red_mean = np.mean(red, axis=0)
         np.savetxt(self.path + r"\red_mean.txt", red_mean)
-        self.sig_plot_data.emit(red_mean, 30 * self._px_size * 100 * self.sampling - (50 * self._px_size * 100), 9999,
+        self.sig_plot_data.emit(red_mean, center, 9999,
                                 self.path,
                                 (1.0, 0.0, 0.0, 1.0), red.shape[0])
         np.savetxt(self.path + r"\red.txt", red)

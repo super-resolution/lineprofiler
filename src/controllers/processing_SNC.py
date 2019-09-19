@@ -50,11 +50,7 @@ class QProcessThread(QSuperThread):
         image = self.current_image[0]/self._intensity_threshold
         image = np.clip(image,0,255)
 
-
         self.im_floodfill_inv = create_floodfill_image(image)
-
-        #cv2.imshow("flood",self.im_floodfill_inv)
-        #cv2.waitKey(0)
 
         spline_positions = self.gradient_table[:,0:2]
 

@@ -85,7 +85,14 @@ class QProcessThread(QSuperThread):
             if distance < self.lower_lim or distance > self.upper_lim:
                 continue
 
+            factor = profile.shape[0]/line['X'].shape[0]
+
+
             profile = profile[int(center - self.distance_to_center):int(center + self.distance_to_center)]
+
+            line['X'] = line['X'][int((center - self.distance_to_center)/factor):int((center + self.distance_to_center)/factor)]
+            line['Y'] = line['Y'][int((center - self.distance_to_center)/factor):int((center + self.distance_to_center)/factor)]
+
             if profile.shape[0] != 2*self.distance_to_center:
                 continue
 
