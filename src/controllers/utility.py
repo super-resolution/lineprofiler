@@ -48,6 +48,8 @@ def line_parameters(point, direction):
 
 def create_floodfill_image(image):
     """
+    .. _floodfill:
+
     Create a floodfill image applying a border with zeros around the image. This results in every boundary
     point, being a source point for the floodfill algorithm.
 

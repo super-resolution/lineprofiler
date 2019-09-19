@@ -52,13 +52,14 @@
 <dd><p><em>list(str)</em> –</p>
 <dl class="docutils">
 <dt>Name of fit functions as a list of strings. Possible values are:</dt>
-<dd><dl class="first docutils">
-<dt><strong>gaussian:</strong> <span class="math">\(y = h e^{ \frac{-(x - c)^ 2 } {2w^2}} + b\)</span></dt>
-<dd>,where h is the intesity, c center, w width and b background noise</dd>
-</dl>
-<p><strong>bigaussian:</strong>  <span class="math">\(y = h_1 e^{ \frac{-(x - c_1)^ 2 } {2w_1^2}}+h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + b\)</span></p>
+<dd><p class="first"><strong>gaussian:</strong> <span class="math">\(y = h e^{ \frac{-(x - c)^ 2 } {2w^2}} + b\)</span>,</p>
+<p>where h is the intensity, c the centre, b the offset, and w the variance of the distribution.
+Optimal for single profiles.</p>
+<p><strong>bigaussian:</strong>  <span class="math">\(y = h_1 e^{ \frac{-(x - c_1)^ 2 } {2w_1^2}}+h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + b\)</span>.</p>
+<p>Optimal for profiles with dip.</p>
 <p><strong>trigaussian:</strong> <span class="math">\(y = h_1 e^{ \frac{-(x - c_1)^ 2 } {2w_1^2}}+
-h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + h_3 e^{ \frac{-(x - c_3)^ 2 } {2w_3^2}} + b\)</span></p>
+h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + h_3 e^{ \frac{-(x - c_3)^ 2 } {2w_3^2}} + b\)</span>.</p>
+<p>Optimal for profiles with dip and background.</p>
 <p><strong>cylinder_projection:</strong>  <span class="math">\(y = \Biggl \lbrace
 {
 h(\sqrt{r_2 ^2 - (x-c) ^ 2} - \sqrt{r_1 ^ 2 - (x-c) ^ 2}),\text{ if }
@@ -66,18 +67,17 @@ h(\sqrt{r_2 ^2 - (x-c) ^ 2} - \sqrt{r_1 ^ 2 - (x-c) ^ 2}),\text{ if }
 \atop
 h(\sqrt{r_2 ^2 - (x-c) ^ 2}), \text{ if }
 \|x\| \geq r1, \|x\| &lt; r_2
-}\)</span></p>
-<blockquote>
-<div>,where h denotes the intensity, c the center, <span class="math">\(r1\)</span> the inner cylinder radius, <span class="math">\(r2\)</span> the outer
-cylinder radius</div></blockquote>
+}\)</span>,</p>
+<p>where r_1, r_2 denote the inner and outer cylinder radius. Describes the theoretical intensity profile
+for microtubule. The quality of the fit strongly depends on the initial estimation of the parameters,
+due to the nonlinearity of the cylinder function.</p>
 <p><strong>multi_cylinder_projection:</strong> <span class="math">\(y =  cyl(i_1, c, 25e_x/2-2a, 25e_x/2-a) +\\
 cyl(i_2, c, 42.5e_x/2, 42.5e_x/2+a) +\\
-cyl(i_3, c, 25e_x/2+a,25e_x/2+2a) + b\)</span></p>
-<blockquote class="last">
-<div>,this function assumes that a micrutuboli sample was pre- and post labled under expansion microscopy
+cyl(i_3, c, 25e_x/2+a,25e_x/2+2a) + b\)</span>,</p>
+<p class="last">this function assumes that a micrutuboli sample was pre- and post labled under expansion microscopy
 (expansion factor <span class="math">\(e_x\)</span>) the second cyl(cylinder_projection) compensates for pre labled
 fluorophores while the first and last cyl fit, post labled fluorophores considering a free orientation
-of the second antibody (antibody width a = 8.75).</div></blockquote>
+of the second antibody (antibody width a = 8.75).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -114,30 +114,6 @@ of the second antibody (antibody width a = 8.75).</div></blockquote>
 <div><a class="reference internal image-reference" href="_images/multi_gaussian.png"><img alt="_images/multi_gaussian.png" src="_images/multi_gaussian.png" style="width: 49%;" /></a>
 <a class="reference internal image-reference" href="_images/cylinder.png"><img alt="_images/cylinder.png" src="_images/cylinder.png" style="width: 49%;" /></a>
 </div></blockquote>
-<dl class="staticmethod">
-<dt id="controllers.fitter.Fit.find_maximas">
-<em class="property">static </em><code class="descname">find_maximas</code><span class="sig-paren">(</span><em>data</em>, <em>n=3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.find_maximas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.find_maximas" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the n biggest local maximas of a given 1d array.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>data</strong> (<em>ndarray</em>) – Input data</li>
-<li><strong>n</strong> (<em>int</em>) – Number of local maximas to find</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>values</strong> – Indices of local maximas.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="method">
 <dt id="controllers.fitter.Fit.fit_data">
 <code class="descname">fit_data</code><span class="sig-paren">(</span><em>data</em>, <em>center</em>, <em>nth_line=0</em>, <em>path=None</em>, <em>c=(1.0</em>, <em>0.0</em>, <em>0.0</em>, <em>1.0)</em>, <em>n_profiles=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/controllers/fitter.html#Fit.fit_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#controllers.fitter.Fit.fit_data" title="Permalink to this definition">¶</a></dt>
@@ -192,7 +168,7 @@ Return the optimal parameters found for two gaussians.</p>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h3><a href="index.html">Table Of Contents</a></h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
+<p class="caption"><span class="caption-text">Packages:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="controllers.utility.html">Utility package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Fitter package</a></li>

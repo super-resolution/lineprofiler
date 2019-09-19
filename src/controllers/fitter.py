@@ -10,19 +10,26 @@ from controllers.utility import find_maximas
 
 class Fit:
     r"""
-    Performs least square fitting, providing a row of fit_functions
+    Performs least square fitting, providing a couple of fit_functions
 
 
     Attributes
     ----------
     fit_functions: list(str)
         Name of fit functions as a list of strings. Possible values are:
-            **gaussian:** :math:`y = h e^{ \frac{-(x - c)^ 2 } {2w^2}} + b`
-                ,where h is the intesity, c center, w width and b background noise
-            **bigaussian:**  :math:`y = h_1 e^{ \frac{-(x - c_1)^ 2 } {2w_1^2}}+h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + b`
+            **gaussian:** :math:`y = h e^{ \frac{-(x - c)^ 2 } {2w^2}} + b`,
+
+            where h is the intensity, c the centre, b the offset, and w the variance of the distribution.
+            Optimal for single profiles.
+
+            **bigaussian:**  :math:`y = h_1 e^{ \frac{-(x - c_1)^ 2 } {2w_1^2}}+h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + b`.
+
+            Optimal for profiles with dip.
 
             **trigaussian:** :math:`y = h_1 e^{ \frac{-(x - c_1)^ 2 } {2w_1^2}}+
-            h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + h_3 e^{ \frac{-(x - c_3)^ 2 } {2w_3^2}} + b`
+            h_2 e^{ \frac{-(x - c_2)^ 2 } {2w_2^2}} + h_3 e^{ \frac{-(x - c_3)^ 2 } {2w_3^2}} + b`.
+
+            Optimal for profiles with dip and background.
 
             **cylinder_projection:**  :math:`y = \Biggl \lbrace
             {
@@ -31,16 +38,20 @@ class Fit:
             \atop
             h(\sqrt{r_2 ^2 - (x-c) ^ 2}), \text{ if }
             \|x\| \geq r1, \|x\| < r_2
-            }`
-                ,where h denotes the intensity, c the center, :math:`r1` the inner cylinder radius, :math:`r2` the outer
-                cylinder radius
+            }`,
+
+            where r_1, r_2 denote the inner and outer cylinder radius. Describes the theoretical intensity profile
+            for microtubule. The quality of the fit strongly depends on the initial estimation of the parameters,
+            due to the nonlinearity of the cylinder function.
+
             **multi_cylinder_projection:** :math:`y =  cyl(i_1, c, 25e_x/2-2a, 25e_x/2-a) +\\
             cyl(i_2, c, 42.5e_x/2, 42.5e_x/2+a) +\\
-            cyl(i_3, c, 25e_x/2+a,25e_x/2+2a) + b`
-                ,this function assumes that a micrutuboli sample was pre- and post labled under expansion microscopy
-                (expansion factor :math:`e_x`) the second cyl(cylinder_projection) compensates for pre labled
-                fluorophores while the first and last cyl fit, post labled fluorophores considering a free orientation
-                of the second antibody (antibody width a = 8.75).
+            cyl(i_3, c, 25e_x/2+a,25e_x/2+2a) + b`,
+
+            this function assumes that a micrutuboli sample was pre- and post labled under expansion microscopy
+            (expansion factor :math:`e_x`) the second cyl(cylinder_projection) compensates for pre labled
+            fluorophores while the first and last cyl fit, post labled fluorophores considering a free orientation
+            of the second antibody (antibody width a = 8.75).
 
 
     Example

@@ -53,10 +53,106 @@
 <span class="kn">from</span> <span class="nn">skimage.measure</span> <span class="k">import</span> <span class="n">label</span>
 <span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="k">import</span> <span class="n">NearestNeighbors</span>
 <span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="k">import</span> <span class="n">UnivariateSpline</span>
+<span class="kn">from</span> <span class="nn">scipy.signal</span> <span class="k">import</span> <span class="n">argrelextrema</span>
+
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
 
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">ndimage</span>
 
+<div class="viewcode-block" id="line_parameters"><a class="viewcode-back" href="../../controllers.utility.html#controllers.utility.line_parameters">[docs]</a><span class="k">def</span> <span class="nf">line_parameters</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="n">direction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    point: tuple</span>
+<span class="sd">        starting point for line</span>
+<span class="sd">    direction: float</span>
+<span class="sd">        direction of line</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    result: dict</span>
+<span class="sd">        Containing arrays with X and Y coordinates of line as well as start and endpoint</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">40</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span>
+    <span class="n">y_i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">40</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">result</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_i</span><span class="p">,</span> <span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_i</span><span class="p">]</span>
+    <span class="n">result</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_i</span><span class="p">,</span> <span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">y_i</span><span class="p">]</span>
+    <span class="c1"># length of line</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x_i</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">y_i</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">result</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_i</span><span class="p">,</span> <span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_i</span><span class="p">,</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">num</span><span class="p">)</span>
+    <span class="n">result</span><span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_i</span><span class="p">,</span> <span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">y_i</span><span class="p">,</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">num</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="create_floodfill_image"><a class="viewcode-back" href="../../controllers.utility.html#controllers.utility.create_floodfill_image">[docs]</a><span class="k">def</span> <span class="nf">create_floodfill_image</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    .. _floodfill:</span>
+
+<span class="sd">    Create a floodfill image applying a border with zeros around the image. This results in every boundary</span>
+<span class="sd">    point, being a source point for the floodfill algorithm.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    image: ndarray</span>
+<span class="sd">        2D input image</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    floodfill image: ndarray</span>
+<span class="sd">        2D binary output image</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ret</span><span class="p">,</span> <span class="n">thresh</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_BINARY_INV</span> <span class="o">+</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_OTSU</span><span class="p">)</span>
+    <span class="n">thresh</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_not</span><span class="p">(</span><span class="n">thresh</span><span class="p">)</span>
+    <span class="c1"># make black border sorounding the image</span>
+    <span class="n">thresh</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">copyMakeBorder</span><span class="p">(</span><span class="n">thresh</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">cv2</span><span class="o">.</span><span class="n">BORDER_CONSTANT</span><span class="p">)</span>
+
+    <span class="c1"># floodfill image to get interior forms</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">thresh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">thresh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    <span class="n">cv2</span><span class="o">.</span><span class="n">floodFill</span><span class="p">(</span><span class="n">thresh</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">255</span><span class="p">)</span>
+
+    <span class="c1"># discard border in returned image</span>
+    <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_not</span><span class="p">(</span><span class="n">thresh</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">thresh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">thresh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="find_maximas"><a class="viewcode-back" href="../../controllers.utility.html#controllers.utility.find_maximas">[docs]</a><span class="k">def</span> <span class="nf">find_maximas</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the n biggest local maximas of a given 1d array.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data: ndarray</span>
+<span class="sd">        Input data</span>
+<span class="sd">    n: int</span>
+<span class="sd">        Number of local maximas to find</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    values: ndarray</span>
+<span class="sd">        Indices of local maximas.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">maximas</span> <span class="o">=</span> <span class="n">argrelextrema</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">maxima_value</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">maximas</span><span class="p">]</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">maximum</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">maxima_value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">maxima_value</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">maximum</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">continue</span>
+
+            <span class="n">maximum</span> <span class="o">=</span> <span class="n">maxima_value</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">maxima_value</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">maximas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;zero exception&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">values</span></div>
 
 <div class="viewcode-block" id="create_gradient_image"><a class="viewcode-back" href="../../controllers.utility.html#controllers.utility.create_gradient_image">[docs]</a><span class="k">def</span> <span class="nf">create_gradient_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">blur</span><span class="p">,</span> <span class="n">sobel</span><span class="o">=</span><span class="mi">9</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -349,7 +445,7 @@
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <h3><a href="../../index.html">Table Of Contents</a></h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
+<p class="caption"><span class="caption-text">Packages:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../controllers.utility.html">Utility package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../controllers.fitter.html">Fitter package</a></li>

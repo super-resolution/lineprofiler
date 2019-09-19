@@ -87,7 +87,6 @@ class QProcessThread(QSuperThread):
 
             factor = profile.shape[0]/line['X'].shape[0]
 
-
             profile = profile[int(center - self.distance_to_center):int(center + self.distance_to_center)]
 
             line['X'] = line['X'][int((center - self.distance_to_center)/factor):int((center + self.distance_to_center)/factor)]
@@ -132,7 +131,7 @@ class QProcessThread(QSuperThread):
                 dis_transform[np.where(dis_transform < self._distance_transform_th * dis_transform.max())] = 0
 
                 #self._compute_orientation()
-                get_candidates_accelerated(maximum, dis_transform, self.image_canny, self.candidates, self._distance_transform_th)
+                get_candidates_accelerated(maximum, dis_transform, self.image_canny, self.candidates, self.distance_transform_th)
                 self.candidate_indices = np.array(np.where(self.candidates != 0))
                 self.show_profiles()
 
