@@ -148,7 +148,7 @@ class Fit:
             for i,parameter in enumerate(func.fit_parameters):
                 txt += parameter + f"{np.abs(optim[i]):.2f}" + "\n"
             ax1.plot(x_aligned, func.fit(x, *optim)/data.max() ,
-                    lw=1, c="r", ls='--', label=name)
+                    lw=1, c=c, ls='--', label=name)
             ax1.legend(loc='best')
             ax1.set_ylabel("normed intensity [a.u.]")
             ax1.set_xlabel("distance [nm]")

@@ -128,7 +128,7 @@ def create_gradient_image(image, blur, sobel=9):
     Returns
     -------
     gradient_image: ndarray
-        ndarray of the pixel orientation in a box of "sobel" size (unit = rad)
+        Array of the pixel orientation in a box of "sobel" size (unit = rad)
 
     Example
     -------
