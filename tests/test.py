@@ -1,5 +1,7 @@
 from unittest import TestCase
 import unittest
+from matplotlib import cm
+
 from src.controllers.fitter import *
 from src.controllers.utility import *
 from src.controllers.image import ImageSIM
@@ -45,7 +47,7 @@ class FitterTest(TestCase):
         self.assertEqual(len(np.where(image != 0)[0]), 7154)#1022*7 pixel != 0
 
     def test_processing_SNC(self):
-        thread = processing_SNC.QProcessThread()
+        thread = processing_SNC.QProcessThread(cm.gist_ncar)
         thread.set_data(self.data, self.path)
         thread.blur = 20
         thread.px_size = 0.032
@@ -53,7 +55,7 @@ class FitterTest(TestCase):
         thread.run()
 
     def test_processing_canny(self):
-        thread = processing_canny.QProcessThread()
+        thread = processing_canny.QProcessThread(cm.gist_ncar)
         thread.set_data(self.data, self.path)
         thread.blur = 9
         thread.px_size = 0.032
@@ -61,7 +63,7 @@ class FitterTest(TestCase):
         thread.run()
 
     def test_processing_microtuboli(self):
-        thread = processing_microtubule.QProcessThread()
+        thread = processing_microtubule.QProcessThread(cm.gist_ncar)
         thread.set_data(self.data, self.path)
         thread.blur = 20
         thread.px_size = 0.032

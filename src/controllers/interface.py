@@ -1,6 +1,10 @@
 from controllers.display import *
 from controllers import processing_SNC, processing_microtubule, processing_canny
-from controllers.fitter import *
+from controllers.fitter import Fit
+from matplotlib import cm
+import weakref
+
+
 
 class Interface():
     def __init__(self, main_window):
@@ -10,11 +14,12 @@ class Interface():
         self.main_window.viewer_container_layout.addWidget(self.display.widget)
         self.intensity_threshold = 30
         self.pixel_size = self.main_window.spinBox_px_size.value()
-        self.fitter = Fit()
         self.current_spline = None
+        self.fitter = Fit()
         self.checkbox_values_changed()
-
         self.set_operation_mode(self.main_window.comboBox_operation_mode.currentText())
+
+
         self.main_window.horizontalSlider_intensity_threshold.valueChanged.connect(
             lambda v: (setattr(self.display, "intensity_threshold", v / 10),(self.slider_threshold_changed())))
 
@@ -51,7 +56,7 @@ class Interface():
     #@QtCore.pyqtSlot(float)
     def set_operation_mode(self, value):
         if value == "Microtubule":
-            self.current_processing_thread = processing_microtubule.QProcessThread()
+            self.current_processing_thread = processing_microtubule.QProcessThread(cm.gist_ncar)
 
             self.main_window.checkBox_multi_cylidner_projection.setEnabled(True)
             self.main_window.checkBox_multi_cylidner_projection.setChecked(True)
@@ -67,7 +72,7 @@ class Interface():
 
 
         elif value == "SNC":
-            self.current_processing_thread = processing_SNC.QProcessThread()
+            self.current_processing_thread = processing_SNC.QProcessThread(cm.gist_ncar)
             self.main_window.checkBox_multi_cylidner_projection.setEnabled(False)
             self.main_window.checkBox_multi_cylidner_projection.setChecked(False)
 
@@ -81,7 +86,7 @@ class Interface():
             self.main_window.spinBox_gaussian_blur.setValue(20)
 
         elif value == "SNC one channel":
-            self.current_processing_thread = processing_canny.QProcessThread()
+            self.current_processing_thread = processing_canny.QProcessThread(cm.gist_ncar)
 
             self.main_window.checkBox_multi_cylidner_projection.setEnabled(False)
             self.main_window.checkBox_multi_cylidner_projection.setChecked(False)
@@ -99,10 +104,14 @@ class Interface():
         self.set_handlers()
         self.current_processing_thread.sig_plot_data.connect(self.fit_data)
         self.current_processing_thread.sig.connect(self.main_window._increase_progress)
-        self.current_processing_thread.done.connect(self.main_window._process_finished)
+        self.current_processing_thread.done.connect(self.process_finished)
         self.checkbox_values_changed()
         if self.current_image is not None:
             self.push_image_to_thread()
+
+
+    def process_finished(self):
+        self.main_window._process_finished()
 
 
     def set_process_lower_lim(self, value):

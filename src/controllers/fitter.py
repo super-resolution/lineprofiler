@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from scipy import optimize
 import matplotlib
 import numpy as np
@@ -7,6 +6,10 @@ from scipy import ndimage
 from collections import abc,namedtuple
 from controllers.fit_function_factory import *
 from controllers.utility import find_maximas
+import matplotlib.pyplot as plt
+import weakref
+import gc
+
 
 class Fit:
     r"""
@@ -93,6 +96,7 @@ class Fit:
     def __init__(self):
         self.expansion = 1
 
+
     @property
     def fit_function(self):
         return fit_functions
@@ -160,6 +164,11 @@ class Fit:
                     os.makedirs(path_new)
                 plt.savefig(path_new +rf'\profile_{nth_line}.png')
             plt.close(fig)
+        plt.close("all")
+        x= weakref.ref(fig)
+        del fig
+        del ax1
+        gc.collect(2)
         return loss
 
     def fit_data_to(self, func, x, data):

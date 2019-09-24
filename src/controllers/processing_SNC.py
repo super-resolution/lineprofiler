@@ -1,7 +1,3 @@
-import cv2
-import numpy as np
-
-#import numba
 import tifffile
 from controllers.utility import *
 from controllers.processing import QSuperThread
@@ -12,8 +8,8 @@ class QProcessThread(QSuperThread):
     Processing thread to compute distances between SNCs in a given SIM image.
     Extending the QThread class keeps the GUI running while the evaluation runs in the background.
     """
-    def __init__(self, parent=None):
-        super(QProcessThread, self).__init__(parent)
+    def __init__(self, *args, parent=None):
+        super(QProcessThread, self).__init__(*args, parent)
         self.upper_lim = 800
         self.lower_lim = 400
         self.distance_to_center = 900

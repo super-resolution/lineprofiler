@@ -1,7 +1,6 @@
 import numpy as np
 from PyQt5.QtCore import QThread,pyqtSignal
 import os
-from matplotlib import cm
 
 
 class QSuperThread(QThread):
@@ -13,11 +12,11 @@ class QSuperThread(QThread):
     sig_plot_data = pyqtSignal(np.ndarray, int, int, str, tuple, int)
     done = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, colormap, parent=None):
         super(QSuperThread, self).__init__(parent)
         self._blur = 20
         self._intensity_threshold = 1
-        self.colormap = cm.gist_ncar
+        self.colormap = colormap
         self.sampling = 10
         self._spline_parameter = 1.0
         self.image_stack = None

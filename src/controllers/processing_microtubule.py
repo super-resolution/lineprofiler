@@ -1,7 +1,6 @@
-import cv2
-import numpy as np
 import tifffile
-from controllers.utility import *
+from controllers.utility import compute_line_orientation, line_parameters, line_profile
+import numpy as np
 from controllers.processing import QSuperThread
 
 
@@ -10,8 +9,8 @@ class QProcessThread(QSuperThread):
     Processing thread to compute distances between SNCs in a given SIM image.
     Extending the QThread class keeps the GUI running while the evaluation runs in the background.
     """
-    def __init__(self, parent=None):
-        super(QProcessThread, self).__init__(parent)
+    def __init__(self, *args, parent=None):
+        super(QProcessThread, self).__init__(*args, parent)
 
     def _set_image(self, slice):
         """
@@ -68,7 +67,7 @@ class QProcessThread(QSuperThread):
                         line['X'].max() < self.image_RGBA.shape[0] and line['Y'].max() < self.image_RGBA.shape[1]:
 
                     self.image_RGBA[line['X'].astype(np.int32), line['Y'].astype(np.int32)] = np.array(
-                        [1.0, 0, 0, 1.0]) * 50000
+                        [color]) * 50000
                 else:
                     print("out of bounds")
 
@@ -87,7 +86,7 @@ class QProcessThread(QSuperThread):
         np.savetxt(self.path + r"\red.txt", red)
 
         self.images_RGBA.append(self.image_RGBA)
-        cv2.imshow("asdf", self.image_RGBA)
+        #cv2.imshow("asdf", self.image_RGBA)
 
     def run(self,): #todo: don't plot in main thread
         """
@@ -116,4 +115,4 @@ class QProcessThread(QSuperThread):
             raise
         finally:
             self.done.emit()
-            self.exit()
+            #self.exit()
