@@ -83,6 +83,23 @@ class QSuperThread(QThread):
         self._spline_parameter = value
 
 
+from functools import wraps
 
-def profile_generator():
+def coroutine(func):
+    """Decorator for priming a coroutine (func)"""
+    @wraps(func)
+    def primer(*args, **kwargs):
+        gen = func(*args, **kwargs)
+        next(gen)
+        return gen
+    return primer
+
+
+@coroutine
+def profile_collector():
     profiles = {"red":[], "green":[], "blue":[]}
+    while True:
+        red, green, blue = yield profiles
+        profiles["red"] += red
+        profiles["green"] += green
+        profiles["blue"] += blue

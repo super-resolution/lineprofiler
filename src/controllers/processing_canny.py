@@ -111,7 +111,7 @@ class QProcessThread(QSuperThread):
                                     (1.0, 0, 0, 1.0), red.shape[0])
 
 
-        cv2.imshow("asdf", self.image_RGBA)
+        #cv2.imshow("asdf", self.image_RGBA)
 
 
 
@@ -147,13 +147,6 @@ class QProcessThread(QSuperThread):
 
         distanc = np.asarray(self.distances)
         np.savetxt(self.path + r"\distances.txt",distanc)
-        histogram = np.histogram(self.distances, bins=np.linspace(self.lower_lim,self.upper_lim,(self.upper_lim-self.lower_lim)/10+1),)
-        z = int((self.upper_lim-self.lower_lim)/10)
-        hist = np.zeros((z,3))
-        for i in range(hist.shape[0]):
-            hist[i,0] = histogram[0][i]
-            hist[i,1] = histogram[1][i]
-            hist[i,1] = histogram[1][i+1]
 
 
         file = open(self.path + r"\results.txt", "w")
