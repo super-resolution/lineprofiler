@@ -1,6 +1,7 @@
 import tifffile
 from controllers.utility import *
 from controllers.processing import QSuperThread
+from controllers.profile_handler import profile_painter
 
 
 
@@ -63,15 +64,18 @@ class QProcessThread(QSuperThread):
         """
         #line_profiles_raw = np.zeros_like(self.image_RGB)
         #print(self.candidate_indices.shape[1])
+        painter = profile_painter(self.current_image_r/self.intensity_threshold, self.path)
+
         current_profile = []
         for i in range(self.candidate_indices.shape[1]):
+            self.sig.emit((i/self.candidate_indices.shape[1])*100)
 
             source_point = self.candidate_indices[0, i], self.candidate_indices[1, i]
             gradient = self.grad_image[source_point]
 
             line = line_parameters(source_point, gradient)
 
-
+            # profile asyncronous with asyncio
             profile = line_profile(self.current_image_r, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
             if profile.shape[0] < 499 * self.px_size * 100:
                 print("to short")
@@ -95,13 +99,7 @@ class QProcessThread(QSuperThread):
             current_profile.append(profile)
             self.distances.append(distance)
 
-            if line['X'].min() > 0 and line['Y'].min() > 0 and\
-                    line['X'].max() < self.image_RGBA.shape[0] and line['Y'].max() < self.image_RGBA.shape[1]:
-
-                self.image_RGBA[line['X'].astype(np.int32), line['Y'].astype(np.int32)] = np.array(
-                    [1.0, 0, 0, 1.0]) * 50000
-            else:
-                print("out of bounds")
+            painter.send(line)
 
         if current_profile:
             red = np.array(current_profile)
@@ -110,16 +108,15 @@ class QProcessThread(QSuperThread):
             self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
                                     (1.0, 0, 0, 1.0), red.shape[0])
 
-
-        #cv2.imshow("asdf", self.image_RGBA)
-
-
+        try:
+            painter.send(None)
+        except StopIteration:
+            print("Overlay sucess")
 
     def run(self):
         # distance transform threshold candidates
-        for i in range(self.image_stack.shape[1]):
-            self._z = i
-            if True:
+        try:
+            for i in range(self.image_stack.shape[1]):
                 self.set_image(i)
                 dis_transform = cv2.distanceTransform(self.im_floodfill_inv, cv2.DIST_L2, 5)
 
@@ -130,38 +127,29 @@ class QProcessThread(QSuperThread):
                 get_candidates_accelerated(maximum, dis_transform, self.image_canny, self.candidates, self.distance_transform_th)
                 self.candidate_indices = np.array(np.where(self.candidates != 0))
                 self.show_profiles()
-
-            else:
-                print("nothing found in layer ", i)
-            self.sig.emit(int((i+1)/self.image_stack.shape[1]*100))
-        self.done.emit()
-        tifffile.imwrite(self.path + r'\profiles.tif', self.image_RGBA.astype(np.uint16), photometric='rgb')
-        new = np.zeros((self.current_image_r.shape[0], self.current_image_r.shape[1], 3))
-        new[..., 0] = self.current_image_r
-        new[..., 1] = self.current_image_r
-        new[..., 2] = self.current_image_r
-
-        new += np.asarray(self.image_RGBA)[...,0:3]
-        new = np.clip(new, 0, 65535)
-        tifffile.imwrite(self.path + r'\Image_overlay.tif', new[..., 0:3].astype(np.uint16), photometric='rgb')
-
-        distanc = np.asarray(self.distances)
-        np.savetxt(self.path + r"\distances.txt",distanc)
+                #self.sig.emit(int((i+1)/self.image_stack.shape[1]*100))
 
 
-        file = open(self.path + r"\results.txt", "w")
-        file.write("mean distance is: "+ str(np.mean(distanc))+ "\nste is: "+ str(np.std(distanc)/np.sqrt(len(distanc))))
-        file.close()
-        print("mean distance is:",np.mean(distanc))
-        print("ste is:", np.std(distanc)/np.sqrt(len(distanc)))
-        red = np.array(self.profiles)
-        np.savetxt(self.path +  r"\red.txt",red)
-        red_mean = np.mean(red, axis=0)
-        self.sig_plot_data.emit(red_mean, 555, 9999, self.path,
-                                (1.0, 0.0, 0.0, 1.0), red.shape[0])
+            distanc = np.asarray(self.distances)
+            np.savetxt(self.path + r"\distances.txt",distanc)
 
-        np.savetxt(self.path + r"\mean_red.txt",red_mean)
 
+            file = open(self.path + r"\results.txt", "w")
+            file.write("mean distance is: "+ str(np.mean(distanc))+ "\nste is: "+ str(np.std(distanc)/np.sqrt(len(distanc))))
+            file.close()
+            print("mean distance is:",np.mean(distanc))
+            print("ste is:", np.std(distanc)/np.sqrt(len(distanc)))
+            red = np.array(self.profiles)
+            np.savetxt(self.path +  r"\red.txt",red)
+            red_mean = np.mean(red, axis=0)
+            self.sig_plot_data.emit(red_mean, 555, 9999, self.path,
+                                    (1.0, 0.0, 0.0, 1.0), red.shape[0])
+
+            np.savetxt(self.path + r"\mean_red.txt",red_mean)
+        except EnvironmentError:
+            raise
+        finally:
+            self.done.emit()
 
     @property
     def distance_transform_th(self):

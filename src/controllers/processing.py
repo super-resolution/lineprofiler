@@ -41,14 +41,14 @@ class QSuperThread(QThread):
             os.makedirs(path)
         self.path = path
         self.image_stack = image_stack[0:3]
-        self.image_RGBA = np.zeros((self.image_stack.shape[-2],self.image_stack.shape[-1],4)).astype(np.uint16)
+        #self.image_RGBA = np.zeros((self.image_stack.shape[-2],self.image_stack.shape[-1],4)).astype(np.uint16)
         self.results = np.zeros((self.image_stack.shape[1], 2))
         self.profiles = []
         self.profiles_green = []
         self.profiles_blue = []
         self.mean_distance = []
         self.distances = []
-        self.images_RGBA = []
+        #self.images_RGBA = []
 
     @property
     def intensity_threshold(self):
@@ -83,23 +83,3 @@ class QSuperThread(QThread):
         self._spline_parameter = value
 
 
-from functools import wraps
-
-def coroutine(func):
-    """Decorator for priming a coroutine (func)"""
-    @wraps(func)
-    def primer(*args, **kwargs):
-        gen = func(*args, **kwargs)
-        next(gen)
-        return gen
-    return primer
-
-
-@coroutine
-def profile_collector():
-    profiles = {"red":[], "green":[], "blue":[]}
-    while True:
-        red, green, blue = yield profiles
-        profiles["red"] += red
-        profiles["green"] += green
-        profiles["blue"] += blue

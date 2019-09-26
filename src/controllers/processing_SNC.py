@@ -1,6 +1,7 @@
 import tifffile
 from controllers.utility import *
 from controllers.processing import QSuperThread
+from controllers.profile_handler import profile_painter
 
 
 class QProcessThread(QSuperThread):
@@ -93,6 +94,8 @@ class QProcessThread(QSuperThread):
         counter = -1
         count = self.gradient_table.shape[0]
         self.results = {'p_red': [], 'p_green': [], 'p_blue': [], 'distances': []}
+
+        painter = profile_painter(self.current_image/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
             current_profile = {'red':[], 'green':[]}
@@ -137,13 +140,7 @@ class QProcessThread(QSuperThread):
                     current_profile['blue'].append(profile_b)
 
                 # draw line
-                if line['X'].min() > 0 and line['Y'].min() > 0 and \
-                        line['X'].max() < self.image_RGBA.shape[0] and line['Y'].max() < self.image_RGBA.shape[1]:
-
-                    self.image_RGBA[line['X'].astype(np.int32), line['Y'].astype(np.int32)] = np.array(
-                        [1.0, 0, 0, 1.0]) * 50000
-                else:
-                    print("out of bounds")
+                painter.send(line)
 
             if current_profile['red']:
                 red = np.array(current_profile['red'])
@@ -161,6 +158,11 @@ class QProcessThread(QSuperThread):
                     self.results['p_blue'] += current_profile['blue']
                     self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
 
+        try:
+            painter.send(None)
+        except StopIteration:
+            print("Overlay sucess")
+
         self.save_avg_profile(self.results['p_red'],"red_mean")
         self.save_avg_profile(self.results['p_green'], "green_mean")
         if self.three_channel:
@@ -175,8 +177,7 @@ class QProcessThread(QSuperThread):
         np.savetxt(self.path + r"\red.txt", red.T)
         np.savetxt(self.path + r"\distances_" + str(i) + ".txt", np.array(self.results['distances']))
 
-        self.images_RGBA.append(self.image_RGBA)
-        cv2.imshow("Line Profiles", self.image_RGBA)
+        #cv2.imshow("Line Profiles", self.image_RGBA)
 
     def run(self,): #todo: don't plot in main thread
         """
@@ -189,17 +190,7 @@ class QProcessThread(QSuperThread):
                 self._show_profiles()
 
 
-            tifffile.imwrite(self.path +r'\Image_with_RGBA_profiles.tif', np.asarray(self.images_RGBA)[...,0:3].astype(np.uint16), photometric='rgb')
-            new = np.zeros((self.current_image.shape[1],self.current_image.shape[2],3))
-            new[...,0] = self.current_image[0]
-            new[...,1] = self.current_image[0]
-            new[...,2] = self.current_image[0]
-
-            new += np.asarray(self.images_RGBA)[0,:,:,0:3]
-            new = np.clip(new, 0,65535)
-            tifffile.imwrite(self.path+r'\Image_overlay.tif', new[...,0:3].astype(np.uint16), photometric='rgb')
         except EnvironmentError:
             raise
         finally:
             self.done.emit()
-            self.exit()
