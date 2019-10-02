@@ -84,6 +84,7 @@ class QProcessThread(QSuperThread):
         X = np.arange(0,profile_mean.shape[0],1)
         to_save = np.array([X,profile_mean]).T
         np.savetxt(self.path + "\\"+name+".txt", to_save)
+        return profile_mean
 
     def _show_profiles(self):
         """
@@ -95,7 +96,7 @@ class QProcessThread(QSuperThread):
         count = self.gradient_table.shape[0]
         self.results = {'p_red': [], 'p_green': [], 'p_blue': [], 'distances': []}
 
-        painter = profile_painter(self.current_image/self.intensity_threshold, self.path)
+        painter = profile_painter(self.current_image[0]/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
             current_profile = {'red':[], 'green':[]}
@@ -153,10 +154,15 @@ class QProcessThread(QSuperThread):
                 self.results['p_green'] += current_profile['green']
 
                 self.save_avg_profile(current_profile['red'], "red_"+str(i))
-                self.save_avg_profile(current_profile['green'], "green_"+str(i))
+                green_mean = self.save_avg_profile(current_profile['green'], "green_"+str(i))
+                self.sig_plot_data.emit(green_mean, self.distance_to_center, i, self.path+r"/green",
+                                        color, red.shape[0])
+
                 if self.three_channel:
                     self.results['p_blue'] += current_profile['blue']
-                    self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
+                    blue_mean = self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
+                    self.sig_plot_data.emit(blue_mean, self.distance_to_center, i, self.path + r"/blue",
+                                            color, red.shape[0])
 
         try:
             painter.send(None)

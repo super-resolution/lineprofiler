@@ -76,7 +76,6 @@ class FitterTest(TestCase):
         thread.run()
         self.painter()
 
-
     def test_processing_microtuboli(self):
         thread = processing_microtubule.QProcessThread(cm.gist_ncar)
         thread.set_data(self.data, self.path)
@@ -85,7 +84,6 @@ class FitterTest(TestCase):
         thread.intensity_threshold = 3.9
         thread.run()
         self.painter()
-
 
     def test_profile_collector(self):
         red = np.ones(500)*2
@@ -107,7 +105,6 @@ class FitterTest(TestCase):
         os.remove(self.save_path + r'\green1.txt')
         os.remove(self.save_path + r'\blue1.txt')
 
-
     def test_profile_painter(self):
         line = {'X':[],'Y':[]}
         line['X'] = np.linspace(0,self.data.shape[-2]-1,600)
@@ -127,7 +124,6 @@ class FitterTest(TestCase):
         pass
 
 
-        #os.remove(self.save_path)
 
 
 if __name__ == '__main__':

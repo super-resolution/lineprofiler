@@ -66,7 +66,7 @@ def profile_painter(image, path):
 def image_writer(image, profiles, path):
     tifffile.imwrite(path + r'\Image_with_profiles.tif',
                      np.asarray(profiles[...,0:3]).astype(np.uint16), photometric='rgb')
-    image = image.astype(np.uint32)
+    image = image.astype(np.uint32)*10
     image += profiles
     image = np.clip(image, 0, 65535)
     tifffile.imwrite(path + r'\Image_overlay.tif', image[...,0:3].astype(np.uint16), photometric='rgb')

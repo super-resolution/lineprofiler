@@ -55,10 +55,10 @@ class QProcessThread(QSuperThread):
                 profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
                 try:
                     #print(np.argmax(profile))
-                    profile = profile[int(50*self._px_size*100):int(550*self._px_size*100)]
+                    profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
                 except:
                     continue
-                if profile.shape[0]<499*self._px_size*100:
+                if profile.shape[0]<499*self.px_size*100:
                     print("to short")
                     continue
 
