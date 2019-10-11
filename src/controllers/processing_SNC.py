@@ -13,7 +13,7 @@ class QProcessThread(QSuperThread):
         super(QProcessThread, self).__init__(*args, parent)
         self.upper_lim = 800
         self.lower_lim = 400
-        self.distance_to_center = 500
+        self.distance_to_center = 600
         self.three_channel = True
 
     def _set_image(self, slice):
