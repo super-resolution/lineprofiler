@@ -137,16 +137,19 @@ class MainWindow(Ui_MainWindow):
 
 def make_dropable(WidgetClass):
     WidgetClass.setAcceptDrops(True)
+    extensions = ["czi", "tiff", "tif", "lsm", "png"]
 
     def dragEnterEvent(e):
         if e.mimeData().hasUrls:
-            e.accept()
+            if all([str(url.toLocalFile()).split(".")[-1] in extensions for url in e.mimeData().urls()]):
+                e.accept()
         else:
             e.ignore()
 
     def dragMoveEvent(e):
         if e.mimeData().hasUrls:
-            e.accept()
+            if all([str(url.toLocalFile()).split(".")[-1] in extensions for url in e.mimeData().urls()]):
+                e.accept()
         else:
             e.ignore()
 
