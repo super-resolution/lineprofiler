@@ -1,6 +1,7 @@
 from viewer.random import Ui_MainWindow
-from PyQt5 import QtWidgets,QtGui
+from PyQt5 import QtWidgets,QtGui, QtCore
 from PyQt5.QtCore import QThread,pyqtSignal
+
 import os
 from controllers.interface import Interface
 from controllers.image import ImageSIM
@@ -11,7 +12,6 @@ from controllers.image import ImageSIM
 class MainWindow(Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__()
-
 
     def init_component(self, qt_window):
         self.working_directory = os.getcwd()
@@ -24,12 +24,24 @@ class MainWindow(Ui_MainWindow):
         self.status_bar = QtWidgets.QStatusBar()
         self.qt_window.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Line Profiler ready to profile lines")
+        self.progress_bars = []
+        make_dropable(self.image_list)
 
+    def annihilate_progress_bar(self, progressBar):
+        progressBar.setVisible(False)
+        self.verticalLayout_11.removeWidget(progressBar)
+        del progressBar
+
+    def create_progress_bar(self):
+        num = len(self.progress_bars)+1
+        progressBar = QtWidgets.QProgressBar(self.dockWidgetContents)
+        progressBar.setStyleSheet("")
+        progressBar.setProperty("value", 0)
+        progressBar.setObjectName("progressBar"+str(num))
+        self.verticalLayout_11.addWidget(progressBar)
+        return progressBar
 
     def _add_handlers(self):
-
-
-
         self.pushButton_open.clicked.connect(
                 lambda: self._open_files())
         self.pushButton_close_all.clicked.connect(
@@ -42,14 +54,14 @@ class MainWindow(Ui_MainWindow):
         self.pushButton_process.clicked.connect(
                 lambda: (self.interface.start_thread(),
             self.status_bar.showMessage("Line Profiler profiling lines"),
-            self.pushButton_process.setEnabled(False))
+            self.pushButton_process.setEnabled(True))#todo: was deactivated before
         )
         #self.spinBox_px_size.valueChanged.connect(self.interface.set_px_size)
         #self.spinBox_gaussian_blur.valueChanged.connect(self.interface.set_process_blur)
         self.comboBox_operation_mode.currentTextChanged.connect(self.interface.set_operation_mode)
 
-        self.spinBox_lower_limit.valueChanged.connect(self.interface.set_process_lower_lim)
-        self.spinBox_upper_limit.valueChanged.connect(self.interface.set_process_upper_lim)
+        #self.spinBox_lower_limit.valueChanged.connect(self.interface.set_process_lower_lim)
+        #self.spinBox_upper_limit.valueChanged.connect(self.interface.set_process_upper_lim)
 
 
         self.horizontalSlider_intensity_threshold.valueChanged.connect(
@@ -108,8 +120,8 @@ class MainWindow(Ui_MainWindow):
                                                             self.working_directory, extensions)[0]
         for file_ in files_list:
             image = ImageSIM(file_)
-        if image is not None:
-            self.image_list.addItem(image)
+            if image is not None:
+                self.image_list.addItem(image)
 
     def _close_all(self):
         image_list = self.image_list
@@ -121,3 +133,43 @@ class MainWindow(Ui_MainWindow):
         if removed:
             removed.reset_data()
         self.image_list.setCurrentRow(-1)
+
+
+def make_dropable(WidgetClass):
+    WidgetClass.setAcceptDrops(True)
+
+    def dragEnterEvent(e):
+        if e.mimeData().hasUrls:
+            e.accept()
+        else:
+            e.ignore()
+
+    def dragMoveEvent(e):
+        if e.mimeData().hasUrls:
+            e.accept()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        """
+        Drop files directly onto the widget
+        File locations are stored in fname
+        :param e:
+        :return:
+        """
+        if e.mimeData().hasUrls:
+            e.setDropAction(QtCore.Qt.CopyAction)
+            e.accept()
+            # Workaround for OSx dragging and dropping
+            for url in e.mimeData().urls():
+                fname = str(url.toLocalFile())
+                image = ImageSIM(fname)
+                self.addItem(image)
+        else:
+            e.ignore()
+
+    WidgetClass.dragEnterEvent = dragEnterEvent
+    WidgetClass.dragMoveEvent = dragMoveEvent
+    WidgetClass.dropEvent = dropEvent.__get__(WidgetClass, QtWidgets.QListWidget)
+
+

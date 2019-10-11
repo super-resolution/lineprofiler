@@ -16,11 +16,16 @@ class Display(object):
             self.widget.addItem(image)
 
     def show_image(self):
-        images = self.interface.current_image.data_rgba_2d/self._intensity_threshold
-        images = np.clip(images, 0, 255)
-        for i in range(images.shape[0]):
-            self.images[i].setImage((images[i]).astype(np.uint8))
-            self.images[i].show()
+        try:
+            images = self.interface.current_image.data_rgba_2d
+        except ValueError:
+            print("No channel visible")
+        else:
+            images = images / self._intensity_threshold
+            images = np.clip(images, 0, 255)
+            for i in range(images.shape[0]):
+                self.images[i].setImage((images[i]).astype(np.uint8))
+                self.images[i].show()
 
     def plot_line(self):#todo: show spline before run
         line = self.interface.current_spline

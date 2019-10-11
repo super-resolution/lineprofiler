@@ -58,7 +58,7 @@ class FitterTest(TestCase):
         os.remove(self.save_path + r'\Image_overlay.tif')
 
     def test_processing_SNC(self):
-        thread = processing_SNC.QProcessThread(cm.gist_ncar)
+        thread = processing_SNC.QProcessThread()
         thread.set_data(self.data, self.path)
         thread.blur = 20
         thread.px_size = 0.032
@@ -68,7 +68,7 @@ class FitterTest(TestCase):
 
 
     def test_processing_canny(self):
-        thread = processing_canny.QProcessThread(cm.gist_ncar)
+        thread = processing_canny.QProcessThread()
         thread.set_data(self.data, self.path)
         thread.blur = 9
         thread.px_size = 0.032
@@ -77,7 +77,7 @@ class FitterTest(TestCase):
         self.painter()
 
     def test_processing_microtuboli(self):
-        thread = processing_microtubule.QProcessThread(cm.gist_ncar)
+        thread = processing_microtubule.QProcessThread()
         thread.set_data(self.data, self.path)
         thread.blur = 20
         thread.px_size = 0.032
@@ -123,6 +123,44 @@ class FitterTest(TestCase):
     def tearDown(self):
         pass
 
+class TestThreadScheduler(unittest.TestCase):
+    def setUp(self):
+        path = r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif"
+        image = ImageSIM(path)
+        image.parse()
+
+    def test_add_file_to_list(self):
+        """
+        File apears in filelist if added
+        Returns
+        -------
+
+        """
+        pass
+
+    def test_file_disapears_on_processig(self):
+        """
+        Build thread factory on run...
+        File should be visible in it's own update bar
+
+        Check processing options
+        Returns
+        -------
+
+        """
+        pass
+
+    def test_scheduler_can_handle_multiple_threads(self):
+        """
+        Microservice for fitting and plotting
+        Check for right save folder
+        Thread Shuts down after processing
+        File returns to file list
+        Returns
+        -------
+
+        """
+        pass
 
 
 

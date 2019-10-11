@@ -1,8 +1,7 @@
-import tifffile
 from controllers.utility import compute_line_orientation, line_parameters, line_profile
 import numpy as np
 from controllers.processing import QSuperThread
-from controllers.profile_handler import profile_painter
+from controllers.profile_handler import profile_painter, profile_collector
 
 
 class QProcessThread(QSuperThread):
@@ -36,12 +35,16 @@ class QProcessThread(QSuperThread):
         Create and evaluate line profiles.
         """
         #line_profiles_raw = np.zeros_like(self.image_RGB)
+        profiles = []
+        result = []
         counter = -1
         count = self.gradient_table.shape[0]
         painter = profile_painter(self.current_image/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
-            current_profile= []
+            #current_profile= []
+            collector = profile_collector(self.path, i)
+
             for j in range(self.shapes[i]):
                 counter+=1
                 self.sig.emit(int((counter) / count* 100))
@@ -53,35 +56,32 @@ class QProcessThread(QSuperThread):
                 line = line_parameters(source_point, gradient)
 
                 profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
-                try:
-                    #print(np.argmax(profile))
-                    profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
-                except:
-                    continue
+                profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
+
                 if profile.shape[0]<499*self.px_size*100:
                     print("to short")
                     continue
 
-                self.profiles.append(profile)
-                current_profile.append(profile)
-
+                collector.send(profile)
                 painter.send((line, color))
-
-            red = np.array(current_profile)
+            try:
+                collector.send(None)
+            except StopIteration as err:
+                result = err.value
+            profiles += result["red"]
+            red = np.array(result["red"])
             red_mean = np.mean(red, axis=0)
-            np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
-            center = 30 * self.px_size * 100 * self.sampling-(50*self.px_size*100)
-            self.sig_plot_data.emit(red_mean, center, i, self.path, color, red.shape[0])
+            self.sig_plot_data.emit(red_mean, profiles[0].shape[0]/2, i, self.path, color, red.shape[0])
 
         try:
             painter.send(None)
         except StopIteration:
             print("Overlay sucess")
 
-        red = np.array(self.profiles)
+        red = np.array(profiles)
         red_mean = np.mean(red, axis=0)
         np.savetxt(self.path + r"\red_mean.txt", red_mean)
-        self.sig_plot_data.emit(red_mean, center, 9999,
+        self.sig_plot_data.emit(red_mean, profiles[0].shape[0]/2, 9999,
                                 self.path,
                                 (1.0, 0.0, 0.0, 1.0), red.shape[0])
         np.savetxt(self.path + r"\red.txt", red)
@@ -92,13 +92,13 @@ class QProcessThread(QSuperThread):
         """
         Start computation and run thread
         """
-        try:
-            for i in range(self.image_stack.shape[1]):
-                self._set_image(i)
-                self._show_profiles()
-
-        except EnvironmentError:
-            raise
-        finally:
-            self.done.emit()
-            #self.exit()
+        #try:
+        for i in range(self.image_stack.shape[1]):
+            self._set_image(i)
+            self._show_profiles()
+        self.done.emit(self.ID)
+        # except EnvironmentError:
+        #     raise
+        # finally:
+        #     self.done.emit()
+        #     #self.exit()

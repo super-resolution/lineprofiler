@@ -16,42 +16,65 @@ class FunctionalTestLineProfiler(unittest.TestCase):
         qtWindow.show()
         self.interface = self.mainWindow.interface
 
-    def test_open_file(self):
+    def test_open_file_and_display_in_file_list(self):
         image = ImageSIM(r"C:\Users\biophys\Pictures\Camera Roll\MAX_SIM3czi_Structured Illumination-CH1-CH2.tif")
-        image.parse()
+        self.mainWindow.image_list.addItem(image)
+        self.mainWindow.image_list.item(0).setSelected(True)
+        self.assertEqual(image, self.mainWindow.image_list.selectedItems()[0])
         self.assertIsNotNone(image.data)
         self.interface.show_image(image)
-        np.testing.assert_almost_equal(self.interface.current_processing_thread.image_stack, image.data)
+        np.testing.assert_almost_equal(self.interface.current_image.data, image.data)
         print("Open file successfully tested")
 
+    def test_run_multiple_files_in_different_modi_and_threads(self):
+        image = ImageSIM(r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif")
+        self.interface.update_config()
+        self.interface.config["intensity_threshold"] = 3
+        self.interface.show_image(image)
+        self.interface.start_thread()
+        image = ImageSIM(r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data_microtub\Expansion dSTORM-Line Profile test.tif")
+        self.interface.update_config()
+        self.interface.config["intensity_threshold"] = -3
+        self.interface.show_image(image)
+        self.interface.start_thread()
+        self.assertIn("1",self.interface.processes)
+        self.assertIn("2", self.interface.processes)
+
     def processing_configurations(self):
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.blur,
+        self.interface.update_config()
+        self.assertEqual(self.mainWindow.interface.config["blur"],
                          self.mainWindow.spinBox_gaussian_blur.value(), msg="Wrong blur value on thread initializdation")
-        self.mainWindow.spinBox_gaussian_blur.setValue(15)
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.blur, 15,
-                         msg="Wrong blur value on update")
 
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.px_size,
+
+        self.assertEqual(self.mainWindow.interface.config["px_size"],
                          self.mainWindow.spinBox_px_size.value(), msg="Wrong px_size on thread initializdation")
-        self.mainWindow.spinBox_px_size.setValue(2)
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.px_size, 2,
-                         msg="Wrong px_size on update")
 
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.blur,
+
+        self.assertEqual(self.mainWindow.interface.config["blur"],
                          self.mainWindow.spinBox_gaussian_blur.value(), msg="Wrong spline parameter on thread initializdation")
-        self.mainWindow.doubleSpinBox_spline_parameter.setValue(2.5)
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.spline_parameter, 2.5,
-                         msg="Wrong spline parameter on update")
 
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.intensity_threshold,
-                         np.exp(self.mainWindow.doubleSpinBox_intensity_threshold.value()), msg="Wrong intensity threshold on thread initializdation")
+
+        self.assertEqual(self.mainWindow.interface.config["intensity_threshold"],
+                         self.mainWindow.doubleSpinBox_intensity_threshold.value(), msg="Wrong intensity threshold on thread initializdation")
+
+        self.mainWindow.spinBox_gaussian_blur.setValue(15)
+        self.mainWindow.doubleSpinBox_spline_parameter.setValue(2.5)
+        self.mainWindow.spinBox_px_size.setValue(2)
         self.mainWindow.doubleSpinBox_intensity_threshold.setValue(4)
-        self.assertEqual(self.mainWindow.interface.current_processing_thread.intensity_threshold,
-                         np.exp(4), msg="Wrong intensity threshold on update")
+        self.interface.update_config()
+
+        self.assertEqual(self.mainWindow.interface.config["blur"], 15,
+                         msg="Wrong blur value on update")
+        self.assertEqual(self.mainWindow.interface.config["spline_parameter"], 2.5,
+                         msg="Wrong spline parameter on update")
+        self.assertEqual(self.mainWindow.interface.config["px_size"], 2,
+                         msg="Wrong px_size on update")
+        self.assertEqual(self.mainWindow.interface.config["intensity_threshold"],
+                         4, msg="Wrong intensity threshold on update")
 
     def test_microtuboli_options(self):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(0)
-        self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "Microtuboli", msg="Wrong combo box Text")
+        self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "Microtubule", msg="Wrong combo box Text")
         self.processing_configurations()
         print("Microtuboli Mode successfully tested")
 

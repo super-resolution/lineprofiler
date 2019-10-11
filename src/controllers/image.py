@@ -222,7 +222,7 @@ class ImageSIM(MicroscopeImage):
     @property
     def data_rgba_2d(self):
         if not np.any(self._channel):
-            return ValueError("No channel visible")
+            raise ValueError("No channel visible")
         visible_data = self.data[(np.where(self._channel))]
         data_rgba = np.zeros((visible_data.shape[0], self.metaData["ShapeSizeY"],self.metaData["ShapeSizeX"],4))
         indices = self._index[np.where(self._channel)]
@@ -234,7 +234,7 @@ class ImageSIM(MicroscopeImage):
     @property
     def data_gray_2d(self):
         if not np.any(self._channel):
-            return ValueError("No channel visible")
+            raise ValueError("No channel visible")
         visible_data = self.data[(np.where(self._channel))]
         data_gray = np.zeros((visible_data.shape[0], self.metaData["ShapeSizeY"],self.metaData["ShapeSizeX"]))
         indices = self._index[np.where(self._channel)]

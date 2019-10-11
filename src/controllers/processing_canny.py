@@ -149,7 +149,7 @@ class QProcessThread(QSuperThread):
         except EnvironmentError:
             raise
         finally:
-            self.done.emit()
+            self.done.emit(self.ID)
 
     @property
     def distance_transform_th(self):

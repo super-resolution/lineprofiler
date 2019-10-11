@@ -244,8 +244,11 @@ border-bottom-left-radius: 10px;
               </item>
               <item>
                <widget class="QListWidget" name="image_list">
+                <property name="acceptDrops">
+                 <bool>true</bool>
+                </property>
                 <property name="selectionMode">
-                 <enum>QAbstractItemView::MultiSelection</enum>
+                 <enum>QAbstractItemView::SingleSelection</enum>
                 </property>
                </widget>
               </item>
@@ -1332,16 +1335,6 @@ QSlider::add-page:horizontal {
        </property>
        <property name="text">
         <string>Run</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QProgressBar" name="progressBar">
-       <property name="styleSheet">
-        <string notr="true"/>
-       </property>
-       <property name="value">
-        <number>0</number>
        </property>
       </widget>
      </item>

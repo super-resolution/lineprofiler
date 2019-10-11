@@ -1,7 +1,7 @@
 import tifffile
 from controllers.utility import *
 from controllers.processing import QSuperThread
-from controllers.profile_handler import profile_painter
+from controllers.profile_handler import profile_painter, profile_collector
 
 
 class QProcessThread(QSuperThread):
@@ -13,7 +13,7 @@ class QProcessThread(QSuperThread):
         super(QProcessThread, self).__init__(*args, parent)
         self.upper_lim = 800
         self.lower_lim = 400
-        self.distance_to_center = 900
+        self.distance_to_center = 500
         self.three_channel = True
 
     def _set_image(self, slice):
@@ -35,7 +35,6 @@ class QProcessThread(QSuperThread):
         self._fillhole_image()
 
 
-
     def _fillhole_image(self):
         """
         Build a fillhole image in red channel
@@ -48,6 +47,8 @@ class QProcessThread(QSuperThread):
         image = np.clip(image,0,255)
 
         self.im_floodfill_inv = create_floodfill_image(image)
+        #cv2.imshow("asadf", self.im_floodfill_inv)
+        #cv2.waitKey(0)
 
         spline_positions = self.gradient_table[:,0:2]
 
@@ -99,6 +100,8 @@ class QProcessThread(QSuperThread):
         painter = profile_painter(self.current_image[0]/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
+            #collector = profile_collector(self.path, i)
+
             current_profile = {'red':[], 'green':[]}
             if self.three_channel:
                 current_profile.setdefault('blue',[])
@@ -121,7 +124,9 @@ class QProcessThread(QSuperThread):
                     continue
 
                 distance, center = calc_peak_distance(profile)
-                if distance < self.lower_lim or distance> self.upper_lim:
+                #center = profile.shape[0]/2 #todo: align on green for green evaluation
+                #
+                if distance < self.lower_lim or  distance> self.upper_lim:
                     continue
 
                 profile = profile[int(center-self.distance_to_center):int(center+self.distance_to_center)]
@@ -130,73 +135,68 @@ class QProcessThread(QSuperThread):
                 current_profile['red'].append(profile)
                 self.results['distances'].append(distance)
 
-                profile_g = line_profile(self.current_image[1], line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
+                profile_g = line_profile(self.current_image[1], line['start'], line['end'], px_size=self.px_size,
+                                         sampling=self.sampling)
+                center = profile_g.argmax()
                 profile_g = profile_g[int(center-self.distance_to_center):int(center+self.distance_to_center)]
+                if profile_g.shape[0] != 2*self.distance_to_center:
+                    continue
                 current_profile['green'].append(profile_g)
 
                 if self.three_channel:
                     profile_b = line_profile(self.current_image[2], line['start'], line['end'], px_size=self.px_size,
                                              sampling=self.sampling)
+                    center = profile_b.argmax()
                     profile_b = profile_b[int(center - self.distance_to_center):int(center + self.distance_to_center)]
+                    if profile_b.shape[0] != 2 * self.distance_to_center:
+                        continue
                     current_profile['blue'].append(profile_b)
 
                 # draw line
-                painter.send(line)
+                painter.send((line,color))
 
             if current_profile['red']:
-                red = np.array(current_profile['red'])
-                red_mean = np.mean(red, axis=0)
-                np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
-                self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
-                                 color, red.shape[0])
-
                 self.results['p_red'] += current_profile['red']
-                self.results['p_green'] += current_profile['green']
+                red_mean = self.save_avg_profile(current_profile['red'], "red_"+str(i))
+                self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
+                                 color, len(current_profile['red']))
 
-                self.save_avg_profile(current_profile['red'], "red_"+str(i))
+                self.results['p_green'] += current_profile['green']
                 green_mean = self.save_avg_profile(current_profile['green'], "green_"+str(i))
                 self.sig_plot_data.emit(green_mean, self.distance_to_center, i, self.path+r"/green",
-                                        color, red.shape[0])
+                                        color, len(current_profile['green']))
 
                 if self.three_channel:
                     self.results['p_blue'] += current_profile['blue']
                     blue_mean = self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
                     self.sig_plot_data.emit(blue_mean, self.distance_to_center, i, self.path + r"/blue",
-                                            color, red.shape[0])
+                                            color, len(current_profile['blue']))
 
         try:
             painter.send(None)
         except StopIteration:
             print("Overlay sucess")
 
-        self.save_avg_profile(self.results['p_red'],"red_mean")
+        red_mean = self.save_avg_profile(self.results['p_red'],"red_mean")
         self.save_avg_profile(self.results['p_green'], "green_mean")
         if self.three_channel:
             self.save_avg_profile(self.results['p_blue'], "blue_mean")
 
-        red = np.array(self.results['p_red'])
-        red_mean = np.mean(red, axis=0)
         self.sig_plot_data.emit(red_mean, self.distance_to_center, 9999, self.path,
-                                (1.0, 0.0, 0.0, 1.0), red.shape[0])
+                                (1.0, 0.0, 0.0, 1.0), len(self.results['p_red']))
 
         # save profiles and distances
-        np.savetxt(self.path + r"\red.txt", red.T)
+        np.savetxt(self.path + r"\red.txt", np.asarray(self.results['p_red']).T)
         np.savetxt(self.path + r"\distances_" + str(i) + ".txt", np.array(self.results['distances']))
 
         #cv2.imshow("Line Profiles", self.image_RGBA)
 
-    def run(self,): #todo: don't plot in main thread
+    def run(self,):
         """
         Start computation and run thread
         """
-        try:
-            for i in range(self.image_stack.shape[1]):
-                self._z = i
-                self._set_image(i)
-                self._show_profiles()
-
-
-        except EnvironmentError:
-            raise
-        finally:
-            self.done.emit()
+        for i in range(self.image_stack.shape[1]):
+            self._z = i
+            self._set_image(i)
+            self._show_profiles()
+        self.done.emit(self.ID)
