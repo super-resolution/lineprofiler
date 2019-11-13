@@ -56,7 +56,7 @@ class QProcessThread(QSuperThread):
                 line = line_parameters(source_point, gradient)
 
                 profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
-                profile = profile[int(50*self.px_size*100):int(550*self.px_size*100)]
+                profile = profile[int(profile.shape[0]/2-250*self.px_size*100):int(profile.shape[0]/2+250*self.px_size*100)]
 
                 if profile.shape[0]<499*self.px_size*100:
                     print("to short")

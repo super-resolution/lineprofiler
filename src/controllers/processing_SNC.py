@@ -32,7 +32,9 @@ class QProcessThread(QSuperThread):
         # spline fit skeletonized image
         self.gradient_table, self.shapes = compute_line_orientation(
             processing_image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
-        self._fillhole_image()
+        if np.all(self.current_image[2] ==0):
+            self.three_channel = False
+        #self._fillhole_image()
 
 
     def _fillhole_image(self):
@@ -112,6 +114,10 @@ class QProcessThread(QSuperThread):
 
                 # profile line starting at point walking in gradient direction
                 source_point = self.gradient_table[counter,0:2]
+
+                if self.current_image[0, int(source_point[0]), int(source_point[1])] < 100:
+                    continue
+
                 gradient = self.gradient_table[counter,2:4]
                 gradient = np.arctan(gradient[1] / gradient[0]) + np.pi / 2
 
@@ -125,8 +131,8 @@ class QProcessThread(QSuperThread):
 
                 distance, center = calc_peak_distance(profile)
                 #center = profile.shape[0]/2 #todo: align on green for green evaluation
-                #
-                if distance < self.lower_lim or  distance> self.upper_lim:
+                #distance < self.lower_lim or
+                if distance> self.upper_lim:
                     continue
 
                 profile = profile[int(center-self.distance_to_center):int(center+self.distance_to_center)]

@@ -1,0 +1,15 @@
+scikit_image
+opencv_python
+networkx
+nump
+scipy
+pyqtgraph
+matplotlib
+pywin32
+lxml
+numba
+tifffile
+czifile
+PyQt5
+skimage
+scikit_learn
