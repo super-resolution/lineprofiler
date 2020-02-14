@@ -1,8 +1,7 @@
-import tifffile
 from controllers.utility import *
 from controllers.processing import QSuperThread
 from controllers.profile_handler import profile_painter, profile_collector
-
+import matplotlib.pyplot as plt
 
 class QProcessThread(QSuperThread):
     """
@@ -34,7 +33,7 @@ class QProcessThread(QSuperThread):
             processing_image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
         if np.all(self.current_image[2] ==0):
             self.three_channel = False
-        #self._fillhole_image()
+        self._fillhole_image()
 
 
     def _fillhole_image(self):
@@ -73,6 +72,18 @@ class QProcessThread(QSuperThread):
 
         self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
 
+        fig, axs = plt.subplots(2, 1, figsize=(9, 6), sharey=True)
+        image = self.current_image[0] / self.intensity_threshold
+        axs[0].imshow(image)
+        axs[0].set_xlabel("test_image")
+        axs[1].imshow(image)
+        axs[1].set_xlabel("test_image with fitted splines")
+        #spline_table, shapes = self.gradient_table
+        spline_positions = self.gradient_table[:, 0:2]
+        axs[1].plot(spline_positions[:,1],
+                    spline_positions[:,0], c="r")
+
+        plt.show()
         #spline_positions = self.gradient_table[:, 0:2]
         #index = 0
         #for j in range(len(self.shapes)):
@@ -115,6 +126,8 @@ class QProcessThread(QSuperThread):
                 # profile line starting at point walking in gradient direction
                 source_point = self.gradient_table[counter,0:2]
 
+
+
                 if self.current_image[0, int(source_point[0]), int(source_point[1])] < 100:
                     continue
 
@@ -131,8 +144,8 @@ class QProcessThread(QSuperThread):
 
                 distance, center = calc_peak_distance(profile)
                 #center = profile.shape[0]/2 #todo: align on green for green evaluation
-                #distance < self.lower_lim or
-                if distance> self.upper_lim:
+
+                if distance < self.lower_lim or distance> self.upper_lim:
                     continue
 
                 profile = profile[int(center-self.distance_to_center):int(center+self.distance_to_center)]

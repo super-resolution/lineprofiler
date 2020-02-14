@@ -12,7 +12,6 @@ from skimage.measure import label
 from sklearn.neighbors import NearestNeighbors
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import argrelextrema
-
 import networkx as nx
 
 from scipy import ndimage
@@ -72,6 +71,7 @@ def create_floodfill_image(image):
     # floodfill image to get interior forms
     mask = np.zeros((thresh.shape[0] + 2, thresh.shape[1] + 2), np.uint8)
     cv2.floodFill(thresh, mask, (0, 0), 255)
+    cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\flood.tif", cv2.bitwise_not(thresh[1:thresh.shape[0]-1,1:thresh.shape[1]-1]))
 
     # discard border in returned image
     return cv2.bitwise_not(thresh[1:thresh.shape[0]-1,1:thresh.shape[1]-1])
@@ -217,6 +217,8 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
     thresh = cv2.bitwise_not(thresh)
 
     skeleton = skeletonize_3d((thresh / 255).astype(np.uint8)).astype(np.uint8)
+
+    cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\skel.tif", skeleton)
     # contour = self.collapse_contours(contours)
     #cv2.imshow("asdf", skeleton * 255)
     #cv2.waitKey(0)
@@ -282,7 +284,6 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
         gradient_list.append(np.vstack(spl(alpha) for spl in dsplines).T)
 
         #plot results for testing purposes
-        #plt.plot(points[..., 1], points[..., 0], color="g")
         #plt.plot(points_fitted[..., 1], points_fitted[..., 0])
 
     #sort results to array
@@ -295,7 +296,9 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
                                  gradient_list[i][j][0], gradient_list[i][j][1],int(point_list[i][j][0]), int(point_list[i][j][1])], )
     gradient_fitted_table = np.array(result_table)
 
-    #plt.show()
+
+
+
     return gradient_fitted_table, shapes
 
 def order_points_to_line(points):

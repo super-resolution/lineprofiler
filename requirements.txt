@@ -1,7 +1,7 @@
 scikit_image
 opencv_python
 networkx
-nump
+numpy
 scipy
 pyqtgraph
 matplotlib
@@ -11,5 +11,4 @@ numba
 tifffile
 czifile
 PyQt5
-skimage
 scikit_learn
