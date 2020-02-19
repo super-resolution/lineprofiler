@@ -19,6 +19,26 @@ def save_avg_profile(profile, path, name):
         X = np.arange(0,profile_mean.shape[0],1)
         to_save = np.array([X,profile_mean]).T
         np.savetxt(path + "\\"+name+".txt", to_save)
+@coroutine
+def mic_project_generator(path, i):
+    profiles = []
+    j = -1
+    while True:
+        data = yield
+        if data is None:
+            break
+        else:
+            profile,z = data
+            if z==0:
+                profiles.append([])
+                j += 1
+        profiles[j].append(profile)
+    for j,profile in enumerate(profiles):
+        profile = np.array(profile)
+        profiles[j] = np.vstack(profile)
+    profiles = np.array(profiles)
+    out = np.mean(profiles, axis=0)
+    return out
 
 @coroutine
 def profile_collector(path, i):

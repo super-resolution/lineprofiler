@@ -48,17 +48,18 @@ class ImageSIM(MicroscopeImage):
         self.extend = None
         self._flip = {}
         self._channel = np.zeros(4).astype(np.bool)
+        self.data_z = None
 
     #Read the image data and metadata und give them into a numpy array.
     #Rearrange the arrays into a consistent shape.
     def parse(self, calibration_px=0.0322, ApplyButton=False):
         self.isParsingNeeded = False
         self.metaData = {}
+        self.data_z = None
         self.data = []
         self.Shape = np.ones(1,dtype={'names':["SizeX","SizeY","SizeZ","SizeC"],'formats':['i4','i4','i4','i4']})
         self.extend = os.path.splitext(self.file_path)[1]
         self._color = np.array(([[1,0,0,1],[0,1,0,1],[0,0,1,1],[1,1,0,1]]))
-
         #CZI files
         if self.extend == '.czi':
             with czifile.CziFile(self.file_path) as czi:
@@ -96,6 +97,14 @@ class ImageSIM(MicroscopeImage):
         #Tiff files are problematic because they most likely wont contain the nessecary metadata.
         #Try to get the shape info over common dimensions.
         elif self.extend == '.tif' or self.extend == '.tiff':
+            z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tif"
+            if os.path.exists(z_name):
+                with tifffile.TiffFile(z_name) as tif:
+                    self.data_z = tif.asarray()
+            z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tiff"
+            if os.path.exists(z_name):
+                with tifffile.TiffFile(z_name) as tif:
+                    self.data_z = tif.asarray()
             with tifffile.TiffFile(self.file_path) as tif:
                 #print(tif.imagej_metadata)
                 self.data = tif.asarray()#[...,0]#np.moveaxis(tif.asarray(),0,1)

@@ -38,7 +38,7 @@ def line_parameters(point, direction):
     result['start'] = [point[0] - x_i, point[1] - y_i]
     result['end'] = [point[0] + x_i, point[1] + y_i]
     # length of line
-    num = np.sqrt(x_i ** 2 + y_i ** 2)
+    num = int(np.round(np.sqrt(x_i ** 2 + y_i ** 2)))
     result['X'] = np.linspace(point[0] - x_i, point[0] + x_i, 3 * num)
     result['Y'] = np.linspace(point[1] - y_i, point[1] + y_i, 3 * num)
 
@@ -387,7 +387,7 @@ def get_candidates_accelerated(maximum, dis_transform, image_canny, canny_candid
                             canny_candidates[i - maximum + k, j - maximum+l] = 1
 
 def line_profile(image, start, end, px_size=0.032, sampling=1):
-    num = np.linalg.norm(np.array(start) - np.array(end)) * px_size * 100 * sampling
+    num = int(np.round(np.linalg.norm(np.array(start) - np.array(end)) * px_size * 100 * sampling))
     x, y = np.linspace(start[0], end[0], num), np.linspace(start[1], end[1], num)
     return ndimage.map_coordinates(image, np.vstack((x, y)))
 

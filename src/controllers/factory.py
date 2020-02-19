@@ -10,6 +10,8 @@ def process_factory(mode, microscope_image, config, fit_func, tear_down, progres
     else:
         raise ValueError("Unknown mode")
     process.set_data(ID, microscope_image.data, microscope_image.file_path)
+    if microscope_image.data_z is not None:
+        process.data_z = microscope_image.data_z
     process.sig.connect(progress_bar.setValue)
     for k in config.keys():
         setattr(process, k, config[k])

@@ -21,6 +21,7 @@ class QSuperThread(QThread):
         self.sampling = 10
         self._spline_parameter = 1.0
         self.image_stack = None
+        self._data_z = None
 
 
     def set_data(self,ID, image_stack, f_name):
@@ -75,4 +76,12 @@ class QSuperThread(QThread):
     @spline_parameter.setter
     def spline_parameter(self, value):
         self._spline_parameter = value
+
+    @property
+    def data_z(self):
+        return self._data_z
+
+    @data_z.setter
+    def data_z(self, data):
+        self._data_z = data
 
