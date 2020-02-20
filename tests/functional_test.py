@@ -1,5 +1,6 @@
 import unittest
 from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtGui import QStandardItemModel
 from controllers.random_GUI import MainWindow
 from controllers.image import *
 import sys
@@ -16,14 +17,18 @@ class FunctionalTestLineProfiler(unittest.TestCase):
         qtWindow.show()
         self.interface = self.mainWindow.interface
 
+
     def test_open_file_and_display_in_file_list(self):
-        image = ImageSIM(r"C:\Users\biophys\Pictures\Camera Roll\MAX_SIM3czi_Structured Illumination-CH1-CH2.tif")
-        self.mainWindow.image_list.addItem(image)
+        item = QListWidgetItem()
+        self.mainWindow.image_list.addItem(item)
+        row = ImageSIM(r"C:\Users\biophys\Pictures\Camera Roll\MAX_SIM3czi_Structured Illumination-CH1-CH2.tif")
+        self.mainWindow.image_list.setItemWidget(item, row)
+        item.setSizeHint(row.minimumSizeHint())
         self.mainWindow.image_list.item(0).setSelected(True)
-        self.assertEqual(image, self.mainWindow.image_list.selectedItems()[0])
-        self.assertIsNotNone(image.data)
-        self.interface.show_image(image)
-        np.testing.assert_almost_equal(self.interface.current_image.data, image.data)
+        self.assertEqual(row, self.mainWindow.image_list.itemWidget(self.mainWindow.image_list.selectedItems()[0]))
+        self.assertIsNotNone(row.data)
+        self.interface.show_image(row)
+        np.testing.assert_almost_equal(self.interface.current_image.data, row.data)
         print("Open file successfully tested")
 
     def test_run_multiple_files_in_different_modi_and_threads(self):

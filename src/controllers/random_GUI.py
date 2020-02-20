@@ -1,7 +1,7 @@
 from viewer.random import Ui_MainWindow
 from PyQt5 import QtWidgets,QtGui, QtCore
 from PyQt5.QtCore import QThread,pyqtSignal
-
+from PyQt5.QtWidgets import QListWidgetItem
 import os
 from controllers.interface import Interface
 from controllers.image import ImageSIM
@@ -47,7 +47,7 @@ class MainWindow(Ui_MainWindow):
         self.pushButton_close_all.clicked.connect(
                 lambda : self._close_all())
         self.pushButton_show.clicked.connect(
-                lambda: self.interface.show_image(self.image_list.selectedItems()[0]))
+                lambda: self._push_image_to_interface(self.image_list.selectedItems()[0]))
         self.pushButton_close.clicked.connect(
             lambda: [self._close_image(i.row()) for i in self.image_list.selectedIndexes()]
         )
@@ -100,6 +100,12 @@ class MainWindow(Ui_MainWindow):
             slider.valueChanged.connect(
                 lambda state, i=i, item=slider,: self.interface.update_image(i, item.value()))
 
+    def _push_image_to_interface(self, selected_item):
+        image = self.image_list.itemWidget(selected_item)
+        self.interface.show_image(image)
+
+
+
     def _increase_progress(self, value):
         self.progressBar.setValue(value)
 
@@ -109,7 +115,6 @@ class MainWindow(Ui_MainWindow):
 
 
     def _open_files(self):
-        image = None
         file_dialog = QtWidgets.QFileDialog()
         title = "Open SIM files"
         # extensions = "Confocal images (*.jpg; *.png; *.tif;);;Confocal stacks (*.ics)"
@@ -119,9 +124,14 @@ class MainWindow(Ui_MainWindow):
         files_list = QtWidgets.QFileDialog.getOpenFileNames(file_dialog, title,
                                                             self.working_directory, extensions)[0]
         for file_ in files_list:
-            image = ImageSIM(file_)
-            if image is not None:
-                self.image_list.addItem(image)
+            #image = ImageSIM(file_)
+            #if image is not None:
+                item = QListWidgetItem()
+                self.image_list.addItem(item)
+                row = ImageSIM(file_)
+                self.image_list.setItemWidget(item, row)
+                item.setSizeHint(row.minimumSizeHint())
+                #self.image_list.addItem(image)
 
     def _close_all(self):
         image_list = self.image_list
@@ -129,13 +139,15 @@ class MainWindow(Ui_MainWindow):
             self._close_image(0)
 
     def _close_image(self, index):
-        removed = self.image_list.takeItem(index)
-        if removed:
-            removed.reset_data()
+        self.image_list.takeItem(index)
         self.image_list.setCurrentRow(-1)
 
 
-def make_dropable(WidgetClass):
+
+
+
+
+def make_dropable(WidgetClass, super_class=QtWidgets.QListWidget):
     WidgetClass.setAcceptDrops(True)
     extensions = ["czi", "tiff", "tif", "lsm", "png"]
 
@@ -166,13 +178,16 @@ def make_dropable(WidgetClass):
             # Workaround for OSx dragging and dropping
             for url in e.mimeData().urls():
                 fname = str(url.toLocalFile())
-                image = ImageSIM(fname)
-                self.addItem(image)
+                row = ImageSIM(fname)
+                item = QListWidgetItem()
+                self.addItem(item)
+                self.setItemWidget(item, row)
+                item.setSizeHint(row.minimumSizeHint())
         else:
             e.ignore()
 
     WidgetClass.dragEnterEvent = dragEnterEvent
     WidgetClass.dragMoveEvent = dragMoveEvent
-    WidgetClass.dropEvent = dropEvent.__get__(WidgetClass, QtWidgets.QListWidget)
+    WidgetClass.dropEvent = dropEvent.__get__(WidgetClass, super_class)
 
 

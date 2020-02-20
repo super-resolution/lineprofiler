@@ -37,7 +37,7 @@ class Interface():
         self.update_config()
         self.processID += 1
         progress_bar = self.main_window.create_progress_bar()
-        progress_bar.setFormat(self.current_image.text().split("/")[-1])
+        progress_bar.setFormat(self.current_image.file_path.split("/")[-1])
         process = process_factory(self.main_window.comboBox_operation_mode.currentText(), self.current_image,
                                   self.config, self.fit_data, self.del_process, progress_bar, self.processID)
         self.processes[str(self.processID)] = (process, progress_bar)

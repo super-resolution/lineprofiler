@@ -12,6 +12,73 @@ import tifffile
 
 from lxml import etree as XMLET
 
+from PyQt5.QtCore import QAbstractListModel, QModelIndex, QVariant, QAbstractTableModel
+from PyQt5.QtGui import QBrush, QPen
+from PyQt5.QtCore import Qt
+
+
+class CustomRowWidget(QWidget):
+    def __init__(self, *args, **kwargs):
+        super(CustomRowWidget, self).__init__(*args[1:], **kwargs)
+        self.setAcceptDrops(True)
+        self.file_path = str(args[0])
+        self.isParsingNeeded = True
+        self.z_file_path = None
+        self.extensions = ["czi", "tiff", "tif", "lsm", "png"]
+        self.row = QHBoxLayout()
+        self.row.addWidget(QLabel(args[0].split(os.sep)[-1]))
+        self.pushButtonOpenZ = QPushButton()
+        self.pushButtonOpenZ.setText("Open z-stack")
+        self.pushButtonOpenZ.clicked.connect(self.open_z)
+        self.row.addWidget(self.pushButtonOpenZ)
+        self.setLayout(self.row)
+
+    def open_z(self):
+        file_dialog = QFileDialog()
+        title = "Open z-stack"
+        # extensions = "Confocal images (*.jpg; *.png; *.tif;);;Confocal stacks (*.ics)"
+        # extensions = "Confocal images (*.jpg *.png *.tif *.ics)"
+        extensions = "image (*.czi *.tiff *.tif *.lsm *.png" \
+                     ")"
+        files_list = QFileDialog.getOpenFileNames(file_dialog, title,
+                                                            os.getcwd(), extensions)[0]
+        self.z_file_path = files_list[0]
+        self.row.removeWidget(self.pushButtonOpenZ)
+        self.row.addWidget(QLabel(self.z_file_path))
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls:
+            if all([str(url.toLocalFile()).split(".")[-1] in self.extensions for url in e.mimeData().urls()]):
+                e.accept()
+        else:
+            e.ignore()
+
+    def dragMoveEvent(self, e):
+        if e.mimeData().hasUrls:
+            if all([str(url.toLocalFile()).split(".")[-1] in self.extensions for url in e.mimeData().urls()]):
+                e.accept()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        """
+        Drop files directly onto the widget
+        File locations are stored in fname
+        :param e:
+        :return:
+        """
+        if e.mimeData().hasUrls:
+            e.setDropAction(Qt.CopyAction)
+            e.accept()
+            # Workaround for OSx dragging and dropping
+            for url in e.mimeData().urls():
+                self.z_file_path = str(url.toLocalFile())
+                self.row.removeWidget(self.pushButtonOpenZ)
+                self.row.addWidget(QLabel(self.z_file_path))
+        else:
+            e.ignore()
+
+
 #Super class for file handling via widget
 class MicroscopeImage(QListWidgetItem):
     def __init__(self, *args, **kwargs):
@@ -29,7 +96,7 @@ class MicroscopeImage(QListWidgetItem):
 #Output arrays will be reshaped to [Color[ZStack[X[Y]]]].
 #See MicroscopeImage for input.
 
-class ImageSIM(MicroscopeImage):
+class ImageSIM(CustomRowWidget):
     """ImageSIM is an instance of QListWidget class, used to read and order SIM data from common file formats.
     Supported formats are: .czi, .lsm, .tif
     """
@@ -97,14 +164,15 @@ class ImageSIM(MicroscopeImage):
         #Tiff files are problematic because they most likely wont contain the nessecary metadata.
         #Try to get the shape info over common dimensions.
         elif self.extend == '.tif' or self.extend == '.tiff':
-            z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tif"
-            if os.path.exists(z_name):
-                with tifffile.TiffFile(z_name) as tif:
-                    self.data_z = tif.asarray()
-            z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tiff"
-            if os.path.exists(z_name):
-                with tifffile.TiffFile(z_name) as tif:
-                    self.data_z = tif.asarray()
+            #z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tif"
+            if self.z_file_path is not None:
+                if os.path.exists(self.z_file_path):
+                    with tifffile.TiffFile(self.z_file_path) as tif:
+                        self.data_z = tif.asarray()
+                #z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tiff"
+            #if os.path.exists(z_name):
+            #    with tifffile.TiffFile(z_name) as tif:
+            #        self.data_z = tif.asarray()
             with tifffile.TiffFile(self.file_path) as tif:
                 #print(tif.imagej_metadata)
                 self.data = tif.asarray()#[...,0]#np.moveaxis(tif.asarray(),0,1)
