@@ -15,6 +15,7 @@ class QSuperThread(QThread):
 
     def __init__(self, parent=None):
         super(QSuperThread, self).__init__(parent)
+        self.z_project_collection = False
         self._blur = 20
         self._intensity_threshold = 1
         self.colormap = cm.gist_ncar
@@ -83,5 +84,6 @@ class QSuperThread(QThread):
 
     @data_z.setter
     def data_z(self, data):
+        self.z_project_collection = True
         self._data_z = data
 

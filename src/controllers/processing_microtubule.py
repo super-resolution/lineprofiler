@@ -2,7 +2,6 @@ from controllers.utility import compute_line_orientation, line_parameters, line_
 import numpy as np
 from controllers.processing import QSuperThread
 from controllers.profile_handler import profile_painter, profile_collector, mic_project_generator
-import cv2
 import tifffile
 
 
@@ -12,7 +11,6 @@ class QProcessThread(QSuperThread):
     Extending the QThread class keeps the GUI running while the evaluation runs in the background.
     """
     def __init__(self, *args, parent=None):
-        self.mic_project_collection = True
         super(QProcessThread, self).__init__(*args, parent)
 
     def _set_image(self, slice):
@@ -38,6 +36,8 @@ class QProcessThread(QSuperThread):
         Create and evaluate line profiles.
         """
         #line_profiles_raw = np.zeros_like(self.image_RGB)
+        if not isinstance(self.data_z, np.ndarray):
+            self.z_project_collection = False
         profiles = []
         result = []
         counter = -1
@@ -60,7 +60,7 @@ class QProcessThread(QSuperThread):
 
                 line = line_parameters(source_point, gradient)
 
-                if self.mic_project_collection:
+                if self.z_project_collection:
                     for z in range(self.data_z.shape[0]):
                         z_profile = line_profile(self.data_z[z], line['start'], line['end'], px_size=self.px_size,
                                                sampling=1)#todo adjust sampling to one sample per pixel
