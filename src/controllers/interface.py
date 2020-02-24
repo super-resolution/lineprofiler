@@ -57,6 +57,7 @@ class Interface():
         self.config["blur"] = self.main_window.spinBox_gaussian_blur.value()
         self.config["distance_threshold"] = self.main_window.spinBox_lower_limit.value()
         self.config["upper_limit"] = self.main_window.spinBox_upper_limit.value()
+        self.config["profil_width"] = self.main_window.spinBox_profil_width.value()
 
     # def set_handlers(self):
     #     self.main_window.spinBox_px_size.valueChanged.connect(

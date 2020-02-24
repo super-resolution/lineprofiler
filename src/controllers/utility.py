@@ -16,7 +16,7 @@ import networkx as nx
 
 from scipy import ndimage
 
-def line_parameters(point, direction):
+def line_parameters(point, direction, width):
     """
 
     Parameters
@@ -32,8 +32,8 @@ def line_parameters(point, direction):
     result: dict
         Containing arrays with X and Y coordinates of line as well as start and endpoint
     """
-    x_i = -40 * np.cos(direction)
-    y_i = -40 * np.sin(direction)
+    x_i = -width/2 * np.cos(direction)
+    y_i = -width/2 * np.sin(direction)
     result = dict()
     result['start'] = [point[0] - x_i, point[1] - y_i]
     result['end'] = [point[0] + x_i, point[1] + y_i]

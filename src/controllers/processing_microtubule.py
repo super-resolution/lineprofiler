@@ -58,21 +58,20 @@ class QProcessThread(QSuperThread):
                 gradient = self.gradient_table[counter,2:4]
                 gradient = np.arctan(gradient[1]/gradient[0])+np.pi/2
 
-                line = line_parameters(source_point, gradient)
+                line = line_parameters(source_point, gradient, self.profil_width)
 
                 if self.z_project_collection:
                     for z in range(self.data_z.shape[0]):
                         z_profile = line_profile(self.data_z[z], line['start'], line['end'], px_size=self.px_size,
-                                               sampling=1)#todo adjust sampling to one sample per pixel
+                                               sampling=1)
                         mic_generator.send((z_profile, z))
 
                 profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
-                profile = profile[int(profile.shape[0]/2-250*self.px_size*100):int(profile.shape[0]/2+250*self.px_size*100)]
+                profile = profile[int(profile.shape[0]/2-self.profil_width/3*self.px_size*1000):int(profile.shape[0]/2+self.profil_width/3*self.px_size*1000)]
 
-                if profile.shape[0]<499*self.px_size*100:
+                if profile.shape[0]<2*self.profil_width/3*self.px_size*1000:
                     print("to short")
                     continue
-
                 collector.send(profile)
                 painter.send((line, color))
             #todo: add if

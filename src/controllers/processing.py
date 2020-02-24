@@ -23,6 +23,7 @@ class QSuperThread(QThread):
         self._spline_parameter = 1.0
         self.image_stack = None
         self._data_z = None
+        self._profil_width = 0
 
 
     def set_data(self,ID, image_stack, f_name):
@@ -86,4 +87,12 @@ class QSuperThread(QThread):
     def data_z(self, data):
         self.z_project_collection = True
         self._data_z = data
+
+    @property
+    def profil_width(self):
+        return self._profil_width
+
+    @profil_width.setter
+    def profil_width(self, value):
+        self._profil_width = value
 

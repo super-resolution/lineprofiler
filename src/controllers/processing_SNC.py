@@ -12,7 +12,6 @@ class QProcessThread(QSuperThread):
         super(QProcessThread, self).__init__(*args, parent)
         self.upper_lim = 800
         self.lower_lim = 400
-        self.distance_to_center = 600
         self.three_channel = True
 
     def _set_image(self, slice):
@@ -134,7 +133,7 @@ class QProcessThread(QSuperThread):
                 gradient = self.gradient_table[counter,2:4]
                 gradient = np.arctan(gradient[1] / gradient[0]) + np.pi / 2
 
-                line = line_parameters(source_point, gradient)
+                line = line_parameters(source_point, gradient, self.profil_width)
 
                 profile = line_profile(self.current_image[0], line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
 
@@ -166,8 +165,8 @@ class QProcessThread(QSuperThread):
                     profile_b = line_profile(self.current_image[2], line['start'], line['end'], px_size=self.px_size,
                                              sampling=self.sampling)
                     center = profile_b.argmax()
-                    profile_b = profile_b[int(center - self.distance_to_center):int(center + self.distance_to_center)]
-                    if profile_b.shape[0] != 2 * self.distance_to_center:
+                    profile_b = profile_b[int(center - self.profil_width/3*self.px_size*1000):int(center + self.profil_width/3*self.px_size*1000)]
+                    if profile_b.shape[0] != 2 * self.profil_width/3*self.px_size*1000:
                         continue
                     current_profile['blue'].append(profile_b)
 
@@ -177,18 +176,18 @@ class QProcessThread(QSuperThread):
             if current_profile['red']:
                 self.results['p_red'] += current_profile['red']
                 red_mean = self.save_avg_profile(current_profile['red'], "red_"+str(i))
-                self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
+                self.sig_plot_data.emit(red_mean, self.profil_width/3*self.px_size*1000, i, self.path,
                                  color, len(current_profile['red']))
 
                 self.results['p_green'] += current_profile['green']
                 green_mean = self.save_avg_profile(current_profile['green'], "green_"+str(i))
-                self.sig_plot_data.emit(green_mean, self.distance_to_center, i, self.path+r"/green",
+                self.sig_plot_data.emit(green_mean, self.profil_width/3*self.px_size*1000, i, self.path+r"/green",
                                         color, len(current_profile['green']))
 
                 if self.three_channel:
                     self.results['p_blue'] += current_profile['blue']
                     blue_mean = self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
-                    self.sig_plot_data.emit(blue_mean, self.distance_to_center, i, self.path + r"/blue",
+                    self.sig_plot_data.emit(blue_mean, self.profil_width/3*self.px_size*1000, i, self.path + r"/blue",
                                             color, len(current_profile['blue']))
 
         try:
@@ -201,7 +200,7 @@ class QProcessThread(QSuperThread):
         if self.three_channel:
             self.save_avg_profile(self.results['p_blue'], "blue_mean")
 
-        self.sig_plot_data.emit(red_mean, self.distance_to_center, 9999, self.path,
+        self.sig_plot_data.emit(red_mean, self.profil_width/3*self.px_size*1000, 9999, self.path,
                                 (1.0, 0.0, 0.0, 1.0), len(self.results['p_red']))
 
         # save profiles and distances

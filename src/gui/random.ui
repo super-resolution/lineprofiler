@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>951</width>
-    <height>735</height>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -97,7 +97,7 @@ border-bottom-left-radius: 10px;
    <property name="minimumSize">
     <size>
      <width>0</width>
-     <height>235</height>
+     <height>305</height>
     </size>
    </property>
    <property name="styleSheet">
@@ -138,6 +138,12 @@ border-bottom-left-radius: 10px;
        </property>
        <item>
         <widget class="QGroupBox" name="groupBox_top_controls">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
          <property name="font">
           <font>
            <pointsize>11</pointsize>
@@ -174,6 +180,12 @@ border-bottom-left-radius: 10px;
               <horstretch>100</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="tabPosition">
              <enum>QTabWidget::North</enum>
@@ -299,6 +311,12 @@ border-bottom-left-radius: 10px;
              </layout>
             </widget>
             <widget class="QWidget" name="tab_4">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
              <attribute name="icon">
               <iconset>
                <normaloff>:/icon/icons/settings48.png</normaloff>:/icon/icons/settings48.png</iconset>
@@ -309,10 +327,16 @@ border-bottom-left-radius: 10px;
              <layout class="QVBoxLayout" name="verticalLayout_4">
               <item>
                <widget class="QGroupBox" name="groupBox_config">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>0</width>
-                  <height>100</height>
+                  <height>130</height>
                  </size>
                 </property>
                 <property name="title">
@@ -321,10 +345,10 @@ border-bottom-left-radius: 10px;
                 <widget class="QWidget" name="gridLayoutWidget">
                  <property name="geometry">
                   <rect>
-                   <x>0</x>
+                   <x>10</x>
                    <y>19</y>
-                   <width>911</width>
-                   <height>68</height>
+                   <width>891</width>
+                   <height>101</height>
                   </rect>
                  </property>
                  <layout class="QGridLayout" name="gridLayout">
@@ -365,6 +389,32 @@ border-bottom-left-radius: 10px;
                     </property>
                    </widget>
                   </item>
+                  <item row="0" column="1">
+                   <widget class="QComboBox" name="comboBox_operation_mode">
+                    <item>
+                     <property name="text">
+                      <string>Microtubule</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>SNC</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>SNC one channel</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QLabel" name="label_blur">
+                    <property name="text">
+                     <string>Gaussian blur</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item row="1" column="3">
                    <widget class="QSpinBox" name="spinBox_upper_limit">
                     <property name="enabled">
@@ -391,20 +441,6 @@ border-bottom-left-radius: 10px;
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="2">
-                   <widget class="QLabel" name="label_blur">
-                    <property name="text">
-                     <string>Gaussian blur</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="2" column="0">
-                   <widget class="QLabel" name="px_size_label">
-                    <property name="text">
-                     <string>Pixel size [micro meter]</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="2" column="1">
                    <widget class="QDoubleSpinBox" name="spinBox_px_size">
                     <property name="decimals">
@@ -419,6 +455,13 @@ border-bottom-left-radius: 10px;
                    <widget class="QLabel" name="label_3">
                     <property name="text">
                      <string>Spline parameter</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="px_size_label">
+                    <property name="text">
+                     <string>Pixel size [micro meter]</string>
                     </property>
                    </widget>
                   </item>
@@ -438,23 +481,24 @@ border-bottom-left-radius: 10px;
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="1">
-                   <widget class="QComboBox" name="comboBox_operation_mode">
-                    <item>
-                     <property name="text">
-                      <string>Microtubule</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>SNC</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>SNC one channel</string>
-                     </property>
-                    </item>
+                  <item row="3" column="0">
+                   <widget class="QLabel" name="label_4">
+                    <property name="text">
+                     <string>Profil width [px]</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="1">
+                   <widget class="QSpinBox" name="spinBox_profil_width">
+                    <property name="maximum">
+                     <number>200</number>
+                    </property>
+                    <property name="value">
+                     <number>80</number>
+                    </property>
+                    <property name="displayIntegerBase">
+                     <number>10</number>
+                    </property>
                    </widget>
                   </item>
                  </layout>
@@ -463,6 +507,18 @@ border-bottom-left-radius: 10px;
               </item>
               <item>
                <widget class="QGroupBox" name="groupBox_config_calibration">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>100</height>
+                 </size>
+                </property>
                 <property name="font">
                  <font>
                   <pointsize>10</pointsize>

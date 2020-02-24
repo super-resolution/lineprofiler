@@ -15,7 +15,6 @@ class QProcessThread(QSuperThread):
         self.upper_lim = 800
         self.lower_lim = 400
         self._distance_transform_th = 0.4#0.85
-        self.distance_to_center = 900
         self.candidate_indices = []
         self.two_channel = False
 
@@ -73,7 +72,7 @@ class QProcessThread(QSuperThread):
             source_point = self.candidate_indices[0, i], self.candidate_indices[1, i]
             gradient = self.grad_image[source_point]
 
-            line = line_parameters(source_point, gradient)
+            line = line_parameters(source_point, gradient, self.profil_width)
 
             # profile asyncronous with asyncio
             profile = line_profile(self.current_image_r, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
@@ -87,10 +86,10 @@ class QProcessThread(QSuperThread):
 
             factor = profile.shape[0]/line['X'].shape[0]
 
-            profile = profile[int(center - self.distance_to_center):int(center + self.distance_to_center)]
+            profile = profile[int(center - self.profil_width/3*self.px_size*1000):int(center + self.profil_width/3*self.px_size*1000)]
 
-            line['X'] = line['X'][int((center - self.distance_to_center)/factor):int((center + self.distance_to_center)/factor)]
-            line['Y'] = line['Y'][int((center - self.distance_to_center)/factor):int((center + self.distance_to_center)/factor)]
+            line['X'] = line['X'][int((center - self.profil_width/3*self.px_size*1000)/factor):int((center + self.profil_width/3*self.px_size*1000)/factor)]
+            line['Y'] = line['Y'][int((center - self.profil_width/3*self.px_size*1000)/factor):int((center + self.profil_width/3*self.px_size*1000)/factor)]
 
             if profile.shape[0] != 2*self.distance_to_center:
                 continue
@@ -105,7 +104,7 @@ class QProcessThread(QSuperThread):
             red = np.array(current_profile)
             red_mean = np.mean(red, axis=0)
             np.savetxt(self.path+r"\red_"+str(i)+".txt",red_mean)
-            self.sig_plot_data.emit(red_mean, self.distance_to_center, i, self.path,
+            self.sig_plot_data.emit(red_mean, self.profil_width/3*self.px_size*1000, i, self.path,
                                     (1.0, 0, 0, 1.0), red.shape[0])
 
         try:
