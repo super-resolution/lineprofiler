@@ -94,6 +94,11 @@ class FunctionalTestLineProfiler(unittest.TestCase):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(2)
         self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SNC one channel", msg="Wrong combo box Text")
         self.processing_configurations()
+        image = ImageSIM(r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif")
+        self.interface.update_config()
+        self.interface.config["intensity_threshold"] = 3
+        self.interface.show_image(image)
+        self.interface.start_thread()
         print("SNC one channel Mode successfully tested")
 
 

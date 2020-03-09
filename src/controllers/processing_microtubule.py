@@ -69,7 +69,7 @@ class QProcessThread(QSuperThread):
                 profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
                 profile = profile[int(profile.shape[0]/2-self.profil_width/3*self.px_size*1000):int(profile.shape[0]/2+self.profil_width/3*self.px_size*1000)]
 
-                if profile.shape[0]<2*self.profil_width/3*self.px_size*1000:
+                if profile.shape[0]< int(2*self.profil_width/3*self.px_size*1000):
                     print("to short")
                     continue
                 collector.send(profile)

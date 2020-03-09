@@ -616,7 +616,7 @@ class Ui_MainWindow(object):
         self.label_blur.setText(_translate("MainWindow", "Gaussian blur"))
         self.label_3.setText(_translate("MainWindow", "Spline parameter"))
         self.px_size_label.setText(_translate("MainWindow", "Pixel size [micro meter]"))
-        self.label_4.setText(_translate("MainWindow", "Profil width [px]"))
+        self.label_4.setText(_translate("MainWindow", "Profile width [px]"))
         self.groupBox_config_calibration.setTitle(_translate("MainWindow", "Intensity threshold"))
         self.label.setText(_translate("MainWindow", "Intensity value"))
         self.tab_5.setTabText(self.tab_5.indexOf(self.tab_4), _translate("MainWindow", "Config"))

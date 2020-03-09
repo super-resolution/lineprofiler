@@ -137,7 +137,7 @@ class Fit:
         matplotlib.rc('font', **{'size' : 12},)
         matplotlib.rcParams['font.sans-serif'] = "Helvetica"
         x = np.linspace(0, data.shape[0]-1, data.shape[0])
-        x_aligned = x-center
+        x_aligned = x-int(center)
 
 
         for name,func in fit_functions.items():

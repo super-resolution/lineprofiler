@@ -166,7 +166,7 @@ class QProcessThread(QSuperThread):
                                              sampling=self.sampling)
                     center = profile_b.argmax()
                     profile_b = profile_b[int(center - self.profil_width/3*self.px_size*1000):int(center + self.profil_width/3*self.px_size*1000)]
-                    if profile_b.shape[0] != 2 * self.profil_width/3*self.px_size*1000:
+                    if profile_b.shape[0] != int(2 * self.profil_width/3*self.px_size*1000):
                         continue
                     current_profile['blue'].append(profile_b)
 

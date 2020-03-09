@@ -13,8 +13,53 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import argrelextrema
 import networkx as nx
-
 from scipy import ndimage
+
+
+def split_by_connected_components(image, blur=9):
+    p_image = cv2.blur(image, (blur * 2, blur * 2))
+
+    ret, thresh = cv2.threshold(p_image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    thresh = cv2.bitwise_not(thresh)
+    cv2.imshow("image", thresh)
+    grad_tab,shapes = compute_line_orientation(thresh.astype(np.uint8), 3)
+    # contour = self.collapse_contours(contours)
+    #cv2.imshow("asdf", skeleton * 255)
+    #cv2.waitKey(0)
+    index = 0
+    images = []
+    start_points = []
+    def cut(image):
+        true_points = np.argwhere(image)
+        # take the smallest points and use them as the top left of your crop
+        top_left = true_points.min(axis=0)
+        # take the largest points and use them as the bottom right of your crop
+        bottom_right = true_points.max(axis=0)
+        out = image[top_left[0]:bottom_right[0] + 1,  # plus 1 because slice isn't
+              top_left[1]:bottom_right[1] + 1]
+        return out, top_left
+
+    for shape in shapes:
+        current = grad_tab[index:index+shape,0:2]
+        index += shape
+        spline_image = np.ones_like(thresh).astype(np.uint8)*255
+        for i in current:
+            spline_image[int(i[0]),int(i[1])] = 0
+        dist = cv2.distanceTransform(spline_image,cv2.DIST_L2, 5)
+        indices = np.where(np.logical_and((dist<40),(thresh!=0)))
+        if indices[0].shape[0]>1000:
+            im = np.zeros_like(image)
+            im[indices[0], indices[1]] = image[indices[0],indices[1]]
+            im, tl = cut(im)
+            images.append(im)
+            start_points.append(tl)
+            #to_show = cv2.resize(im,(0,0),fx=0.5,fy=0.5, interpolation=cv2.INTER_AREA)
+            #cv2.imshow("image"+str(i),to_show)
+    #cv2.waitKey(0)
+    images = np.array(images)
+
+    return images, start_points
+
 
 def line_parameters(point, direction, width):
     """
@@ -71,7 +116,7 @@ def create_floodfill_image(image):
     # floodfill image to get interior forms
     mask = np.zeros((thresh.shape[0] + 2, thresh.shape[1] + 2), np.uint8)
     cv2.floodFill(thresh, mask, (0, 0), 255)
-    cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\flood.tif", cv2.bitwise_not(thresh[1:thresh.shape[0]-1,1:thresh.shape[1]-1]))
+    #cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\flood.tif", cv2.bitwise_not(thresh[1:thresh.shape[0]-1,1:thresh.shape[1]-1]))
 
     # discard border in returned image
     return cv2.bitwise_not(thresh[1:thresh.shape[0]-1,1:thresh.shape[1]-1])
@@ -242,7 +287,7 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
         line_itterator += 1
         print(line_itterator)
         points = np.array(lines[line_itterator]).T
-        if points.shape[0] < 70:
+        if points.shape[0] < 30:
             continue
         order = order_points_to_line(points)
         if len(order)<points.shape[0]:
@@ -258,7 +303,7 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
                 vec1 = points[i + 15] - points[i]
                 vec2 = points[i + 30] - points[i + 15]
                 direction = np.dot(vec1, vec2)
-                if direction < 30:
+                if direction < 90:
                     direction_change = i +1
             if distance[i] - distance[i - 1] > 10 or i > direction_change:
                 distance = distance[:i]
@@ -284,8 +329,6 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
         gradient_list.append(np.vstack(spl(alpha) for spl in dsplines).T)
 
         #plot results for testing purposes
-        #plt.plot(points_fitted[..., 1], points_fitted[..., 0])
-
     #sort results to array
     result_table = []
     shapes = []
@@ -296,10 +339,8 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
                                  gradient_list[i][j][0], gradient_list[i][j][1],int(point_list[i][j][0]), int(point_list[i][j][1])], )
     gradient_fitted_table = np.array(result_table)
 
-
-
-
     return gradient_fitted_table, shapes
+
 
 def order_points_to_line(points):
     """

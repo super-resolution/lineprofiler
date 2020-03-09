@@ -14,8 +14,8 @@ class QProcessThread(QSuperThread):
         super(QProcessThread, self).__init__(*args,parent)
         self.upper_lim = 800
         self.lower_lim = 400
-        self._distance_transform_th = 0.4#0.85
-        self.candidate_indices = []
+        self._distance_transform_th = 0.5#0.85
+        self.candidate_indices = [np.array(0),np.array(0)]
         self.two_channel = False
 
 
@@ -24,10 +24,10 @@ class QProcessThread(QSuperThread):
         Set current image
         :param slice: z-slice of the hyperstack
         """
-        self.current_image_r = self.image_stack[0,slice]
-        processing_image = np.clip(self.image_stack[0,slice]/self._intensity_threshold, 0, 255).astype(np.uint8)
+        self.current_image_r = self.image_stack[1,slice]
+        processing_image = np.clip(self.image_stack[1,slice]/self._intensity_threshold, 0, 255).astype(np.uint8)
         self.grad_image = create_gradient_image(processing_image, self.blur)
-
+        self.current_subimages, self.top_left_shift = split_by_connected_components(processing_image)
         #cv2.imshow("asdf", processing_image)
         #cv2.waitKey(0)
         #self.current_image_green = self.image_stack[1,slice]
@@ -39,8 +39,6 @@ class QProcessThread(QSuperThread):
             self.two_channel = True
             print("no blue channel")
 
-        self.candidates = np.zeros((self.current_image_r.shape[0],self.current_image_r.shape[1]))
-        self._init_distance_transform(processing_image)
 
     def _init_distance_transform(self, image):
         """
@@ -52,8 +50,8 @@ class QProcessThread(QSuperThread):
 
         self.im_floodfill_inv = create_floodfill_image(image)
 
-        cv2.imshow("Floodfill image",cv2.resize(self.im_floodfill_inv,(0,0), fx=0.5, fy=0.5))
-        cv2.imshow("Canny image", self.image_canny)
+        #cv2.imshow("Floodfill image",cv2.resize(self.im_floodfill_inv,(0,0), fx=0.5, fy=0.5))
+        #cv2.imshow("Canny image", self.image_canny)
         #cv2.waitKey(0)
 
     def show_profiles(self):
@@ -64,7 +62,8 @@ class QProcessThread(QSuperThread):
         #line_profiles_raw = np.zeros_like(self.image_RGB)
         #print(self.candidate_indices.shape[1])
         painter = profile_painter(self.current_image_r/self.intensity_threshold, self.path)
-
+        self.profiles = []
+        self.distances = []
         current_profile = []
         for i in range(self.candidate_indices.shape[1]):
             self.sig.emit((i/self.candidate_indices.shape[1])*100)
@@ -91,7 +90,7 @@ class QProcessThread(QSuperThread):
             line['X'] = line['X'][int((center - self.profil_width/3*self.px_size*1000)/factor):int((center + self.profil_width/3*self.px_size*1000)/factor)]
             line['Y'] = line['Y'][int((center - self.profil_width/3*self.px_size*1000)/factor):int((center + self.profil_width/3*self.px_size*1000)/factor)]
 
-            if profile.shape[0] != 2*self.distance_to_center:
+            if profile.shape[0] != int(2*self.profil_width/3*self.px_size*1000):
                 continue
 
             self.profiles.append(profile)
@@ -115,8 +114,13 @@ class QProcessThread(QSuperThread):
     def run(self):
         # distance transform threshold candidates
         try:
-            for i in range(self.image_stack.shape[1]):
-                self.set_image(i)
+            self.set_image(0)
+            for i in range(self.current_subimages.shape[0]):
+                processing_image = self.current_subimages[i].astype(np.uint8)
+
+                self.candidates = np.zeros((self.current_image_r.shape[0], self.current_image_r.shape[1]))
+                self._init_distance_transform(processing_image)
+
                 dis_transform = cv2.distanceTransform(self.im_floodfill_inv, cv2.DIST_L2, 5)
 
                 maximum = int(dis_transform.max()) + 1
@@ -124,8 +128,14 @@ class QProcessThread(QSuperThread):
 
                 #self._compute_orientation()
                 get_candidates_accelerated(maximum, dis_transform, self.image_canny, self.candidates, self.distance_transform_th)
-                self.candidate_indices = np.array(np.where(self.candidates != 0))
-                self.show_profiles()
+                cd = np.array(np.where(self.candidates != 0))
+                if cd.size !=0:
+                    cd[0] += self.top_left_shift[i][0]
+                    cd[1] += self.top_left_shift[i][1]
+                    self.candidate_indices[0] = np.append(self.candidate_indices[0], cd[0])
+                    self.candidate_indices[1] = np.append(self.candidate_indices[1], cd[1])
+            self.candidate_indices = np.array(self.candidate_indices)
+            self.show_profiles()
                 #self.sig.emit(int((i+1)/self.image_stack.shape[1]*100))
 
 
