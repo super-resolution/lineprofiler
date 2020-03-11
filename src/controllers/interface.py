@@ -1,5 +1,4 @@
 from controllers.display import *
-from controllers import processing_SNC, processing_microtubule, processing_canny
 from controllers.fitter import Fit
 from matplotlib import cm
 import weakref
@@ -22,7 +21,11 @@ class Interface():
         self.config = {"intensity_threshold":0,
                        "px_size":0,
                        "blur":0,
-                       "spline_parameter":0}
+                       "spline_parameter":0,
+                       "distance_threshold":0,
+                       "upper_limit":0,
+                       "lower_limit":0,
+                       "profil_width":0}
 
         self.main_window.horizontalSlider_intensity_threshold.valueChanged.connect(
             lambda v: (setattr(self.display, "intensity_threshold", v / 10),(self.slider_threshold_changed())))
@@ -57,6 +60,7 @@ class Interface():
         self.config["blur"] = self.main_window.spinBox_gaussian_blur.value()
         self.config["distance_threshold"] = self.main_window.spinBox_lower_limit.value()
         self.config["upper_limit"] = self.main_window.spinBox_upper_limit.value()
+        self.config["lower_limit"] = self.main_window.spinBox_lower_limit.value()
         self.config["profil_width"] = self.main_window.spinBox_profil_width.value()
 
     # def set_handlers(self):

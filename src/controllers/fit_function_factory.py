@@ -8,6 +8,48 @@ def register(func):
         fit_functions[func.__name__] = func
     return func
 
+@register
+class halfnorm:
+    fit_parameters = ("Intensity 1: ", "Width 1: ", "Center 1: ", "Offset: ")
+    @staticmethod
+    def bounds(param):
+        return np.array([[0, np.inf], [0, np.inf], [0, np.inf],
+                          [0, np.inf]]).T
+
+    @staticmethod
+    def guess(param):
+        return [param['height'], 0.5, param['maximas'][0], 0]
+
+    @staticmethod
+    def fit(x, height, width, center, noise_lvl):
+        """
+        Simple guassian function.
+
+        Parameters
+        ----------
+        x: ndarray
+            Coordinate space in x direction
+        height: float
+            Maximum height of gaussian function
+        center: float
+            Center of gaussian funtcion
+        width: float
+            Width of gaussian function
+        noise_lvl: float
+            y offset (background lvl)
+
+        Returns
+        -------
+        gaussian: ndarray
+            (nx1) array of y values corresponding to the given parameters
+
+        """
+        y = np.zeros_like(x).astype(np.float32)
+        indices = np.where(x-center>=0)
+        y[indices] = height * np.exp(-(x[indices] - center) ** 2 / (2 * width ** 2))
+        #indices = np.where(x - center < 0)
+        #y[indices] = noise_lvl
+        return y
 
 @register
 class gaussian:

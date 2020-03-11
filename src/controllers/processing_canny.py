@@ -1,7 +1,7 @@
 import tifffile
 from controllers.utility import *
-from controllers.processing import QSuperThread
-from controllers.profile_handler import profile_painter
+from controllers.processing_template import QSuperThread
+from controllers.micro_services import profile_painter
 
 
 

@@ -19,6 +19,7 @@ def save_avg_profile(profile, path, name):
         X = np.arange(0,profile_mean.shape[0],1)
         to_save = np.array([X,profile_mean]).T
         np.savetxt(path + "\\"+name+".txt", to_save)
+
 @coroutine
 def mic_project_generator(path, i):
     profiles = []
@@ -38,6 +39,8 @@ def mic_project_generator(path, i):
         profiles[j] = np.vstack(profile)
     profiles = np.array(profiles)
     out = np.mean(profiles, axis=0)
+    mic_project = out.value * 100
+    tifffile.imwrite(path + r"\mic_project" + str(i) + ".tif", mic_project.astype(np.uint16))
     return out
 
 @coroutine

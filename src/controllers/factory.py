@@ -1,4 +1,4 @@
-from controllers import processing_microtubule, processing_SNC, processing_canny
+from controllers import processing_microtubule, processing_SNC, processing_one_channel
 
 def process_factory(mode, microscope_image, config, fit_func, tear_down, progress_bar, ID):
     if mode == "Microtubule":
@@ -6,7 +6,7 @@ def process_factory(mode, microscope_image, config, fit_func, tear_down, progres
     elif mode == "SNC":
         process =  processing_SNC.QProcessThread()
     elif mode == "SNC one channel":
-        process = processing_canny.QProcessThread()
+        process = processing_one_channel.QProcessThread()
     else:
         raise ValueError("Unknown mode")
     process.set_data(ID, microscope_image.data, microscope_image.file_path)

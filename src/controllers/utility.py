@@ -14,18 +14,27 @@ from scipy.interpolate import UnivariateSpline
 from scipy.signal import argrelextrema
 import networkx as nx
 from scipy import ndimage
+from controllers.fit_function_factory import fit_functions
+from scipy import optimize
 
+
+def get_center_of_mass_splines(image, blur=9):
+    p_image = cv2.blur(image, (blur * 2, blur * 2))
+
+    ret, thresh = cv2.threshold(p_image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    thresh = cv2.bitwise_not(thresh)
+    cv2.imshow("im",thresh)
+    cv2.waitKey(0)
+    grad_tab,shapes = compute_line_orientation(thresh.astype(np.uint8), 3)
+    return grad_tab, shapes
 
 def split_by_connected_components(image, blur=9):
     p_image = cv2.blur(image, (blur * 2, blur * 2))
 
     ret, thresh = cv2.threshold(p_image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     thresh = cv2.bitwise_not(thresh)
-    cv2.imshow("image", thresh)
     grad_tab,shapes = compute_line_orientation(thresh.astype(np.uint8), 3)
-    # contour = self.collapse_contours(contours)
-    #cv2.imshow("asdf", skeleton * 255)
-    #cv2.waitKey(0)
+
     index = 0
     images = []
     start_points = []
@@ -435,7 +444,49 @@ def line_profile(image, start, end, px_size=0.032, sampling=1):
 def calc_peak_distance(profile):
     split1 = profile[:int(profile.shape[0]/2)]
     split2 = profile[int(profile.shape[0]/2):]
-    distance= (split2.argmax() + profile.shape[0]/2) - split1.argmax()
+    distance_o= (split2.argmax() + profile.shape[0]/2) - split1.argmax()
+    args1 = fit_data_to(fit_functions["gaussian"],np.arange(split1.shape[0]),split1)
+    args2 = fit_data_to(fit_functions["gaussian"],np.arange(split2.shape[0]),split2)
+    distance = int(split1.shape[0]-args1[2]+args2[2])
     center = split1.argmax() + distance/2
     return distance, center
 
+def fit_data_to(func, x, data, expansion=1, chi_squared=False, center=None):
+    """
+    Fit data to given func using least square optimization. Compute and  print chi2.
+    Return the optimal parameters found for two gaussians.
+
+    Parameters
+    ----------
+    data: ndarray
+        Given data (1d)
+
+    Returns
+    -------
+    optim2: tuple
+        Optimal parameters
+    """
+    param = {}
+    param['maximas'] = [data.argmax()]#find_maximas(data)
+    if center:
+        param['maximas'] = [center]
+    param['height'] = data.max()
+    param['CM'] = np.average(x, weights=data)
+    param['expansion'] = expansion
+    param['width'] = data.shape[0]
+    bounds = func.bounds(param)
+    guess = func.guess(param)
+
+    # calculate error by squared distance to data
+    errfunc = lambda p, x, y: (func.fit(x, *p) - y) ** 2
+
+
+    result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
+    optim = result.x
+
+    if chi_squared:
+        chi1 = lambda p, x, y: ((func.fit(x, *p) - y) ** 2)/func.fit(x, *p)
+        err = chi1(optim, x, data).sum()
+        print(f"{func.__name__} chi2 {err}, cost {result.cost}")
+        return optim, [err, result.cost]
+    return optim

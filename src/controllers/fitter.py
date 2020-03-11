@@ -1,14 +1,14 @@
-from scipy import optimize
 import matplotlib
 import numpy as np
 import os
 from scipy import ndimage
 from collections import abc,namedtuple
 from controllers.fit_function_factory import *
-from controllers.utility import find_maximas
+from controllers.utility import fit_data_to
 import matplotlib.pyplot as plt
 import weakref
 import gc
+
 
 
 class Fit:
@@ -147,7 +147,7 @@ class Fit:
 
             #fit = getattr(self, "fit_data_to_"+name)
             #func = getattr(self, name)
-            optim, loss = self.fit_data_to(func, x, data)
+            optim, loss = fit_data_to(func, x, data, expansion=self.expansion, chi_squared=True)
             txt = name + "fit parameters: \n" + f"Number of profiles: {n_profiles} \n"
             for i,parameter in enumerate(func.fit_parameters):
                 txt += parameter + f"{np.abs(optim[i]):.2f}" + "\n"
@@ -171,44 +171,44 @@ class Fit:
         gc.collect(2)
         return loss
 
-    def fit_data_to(self, func, x, data):
-        """
-        Fit data to given func using least square optimization. Compute and  print chi2.
-        Return the optimal parameters found for two gaussians.
-
-        Parameters
-        ----------
-        data: ndarray
-            Given data (1d)
-
-        Returns
-        -------
-        optim2: tuple
-            Optimal parameters
-        """
-        param = {}
-        param['maximas'] = find_maximas(data)
-        param['height'] = data.max()
-        param['CM'] = np.average(x, weights=data)
-        param['expansion'] = self.expansion
-        param['width'] = data.shape[0]
-        bounds = func.bounds(param)
-        guess = func.guess(param)
-
-        # calculate error by squared distance to data
-        errfunc = lambda p, x, y: (func.fit(x, *p) - y) ** 2
-
-
-        result = optimize.least_squares(errfunc, guess[:], bounds=bounds, args=(x, data))
-        optim = result.x
-
-        chi1 = lambda p, x, y: ((func.fit(x, *p) - y) ** 2)/func.fit(x, *p)
+class Hist():
+    def __init__(self):
+        pass
+    def create_histogram(self, values, start=100,stop=500):
+        matplotlib.rc('font', **{'size' : 12},)
+        matplotlib.rcParams['font.sans-serif'] = "Helvetica"
+        fig = plt.figure()
+        ax1 = fig.add_axes((0.1, 0.2, 0.8, 0.7),)
+        bins = np.arange(start, stop, 10)
+        x = ax1.hist(values, bins, color="white",  edgecolor='#626F78')
+        for item in x[2]:
+            item.set_height(item.get_height() / x[0].max())
+        max_value = np.max(x[0])
+        j=0
+        for i in range(x[0].shape[0]):
+           if x[0][i]>0.9*max_value:
+               j = i
+        func = fit_functions["halfnorm"]
+        bin_new = x[1][:-1]+5
+        x_bin = np.arange(x[1].shape[0]-1)
+        center_guess = x_bin[j]
+        optim = fit_data_to(func, x_bin, x[0], center=center_guess)
+        optim[2] *= 10
+        optim[2] += start
+        optim[1] *= 10
+        x_bin = np.arange(stop)
+        values = func.fit(x_bin, *optim)
+        #x_bin += start
 
 
-        err = chi1(optim, x, data).sum()
+        ax1.plot(x_bin[np.where(values>0)], values[np.where(values>0)]/x[0].max(), c="r", linestyle='dashed')
+        fig.text(0.5, 0.01, "strand distance: "+str(np.around(optim[2],2))+r"$\pm$" +str(np.around(optim[1]/2.3548,2)), ha='center')
+        ax1.set_xlim(start,stop-100)
+        ax1.set_ylim(0,1)
 
-
-        print(f"{func.__name__} chi2 {err}, cost {result.cost}")
-        return optim, [err, result.cost]
+        print(j)
+        ax1.set_ylabel("normed frequency [a.u.]")
+        ax1.set_xlabel("distance [nm]")
+        plt.show()
 
 

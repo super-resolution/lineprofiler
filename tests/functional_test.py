@@ -7,6 +7,9 @@ import sys
 import numpy as np
 
 class FunctionalTestLineProfiler(unittest.TestCase):
+    #todo: add test for 3D
+    #todo: add test for center of mass computation
+    #todo: evaluate histogram
     def setUp(self):
         self.qtApp = QApplication(sys.argv)
         qtWindow = QMainWindow()

@@ -1,13 +1,12 @@
 from controllers.utility import compute_line_orientation, line_parameters, line_profile
 import numpy as np
-from controllers.processing import QSuperThread
-from controllers.profile_handler import profile_painter, profile_collector, mic_project_generator
-import tifffile
+from controllers.processing_template import QSuperThread
+from controllers.micro_services import profile_painter, profile_collector, mic_project_generator
 
 
 class QProcessThread(QSuperThread):
     """
-    Processing thread to compute distances between SNCs in a given SIM image.
+    Processing thread to compute Microtubule profiles.
     Extending the QThread class keeps the GUI running while the evaluation runs in the background.
     """
     def __init__(self, *args, parent=None):
@@ -25,7 +24,7 @@ class QProcessThread(QSuperThread):
         """
         self.current_image = self.image_stack[1,slice].astype(np.uint16)*10
         processing_image = np.clip(self.image_stack[1,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
-        # spline fit skeletonized image
+        # Spline fit skeletonized image
         self.gradient_table, self.shapes = compute_line_orientation(
             processing_image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
 
@@ -35,7 +34,6 @@ class QProcessThread(QSuperThread):
         """
         Create and evaluate line profiles.
         """
-        #line_profiles_raw = np.zeros_like(self.image_RGB)
         if not isinstance(self.data_z, np.ndarray):
             self.z_project_collection = False
         profiles = []
@@ -45,9 +43,7 @@ class QProcessThread(QSuperThread):
         painter = profile_painter(self.current_image/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
-            #current_profile= []
             collector = profile_collector(self.path, i)
-            #todo: add if
             mic_generator = mic_project_generator(self.path, i)
             for j in range(self.shapes[i]):
                 counter+=1
@@ -69,18 +65,15 @@ class QProcessThread(QSuperThread):
                 profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
                 profile = profile[int(profile.shape[0]/2-self.profil_width/3*self.px_size*1000):int(profile.shape[0]/2+self.profil_width/3*self.px_size*1000)]
 
-                if profile.shape[0]< int(2*self.profil_width/3*self.px_size*1000):
+                if profile.shape[0]< int(2*self.profil_width/3*self.px_size*1000)+1:
                     print("to short")
                     continue
                 collector.send(profile)
                 painter.send((line, color))
-            #todo: add if
             try:
                 mic_generator.send(None)
             except StopIteration as err:
-                mic_project = err.value*100
-                tifffile.imwrite(self.path + r"\mic_project"+str(i)+ ".tif", mic_project.astype(np.uint16))
-                #cv2.waitKey(0)
+                print("created z-profile")
             try:
                 collector.send(None)
             except StopIteration as err:
@@ -103,19 +96,12 @@ class QProcessThread(QSuperThread):
                                 (1.0, 0.0, 0.0, 1.0), red.shape[0])
         np.savetxt(self.path + r"\red.txt", red)
 
-        #cv2.imshow("asdf", self.image_RGBA)
 
-    def run(self,): #todo: don't plot in main thread
+    def run(self,):
         """
         Start computation and run thread
         """
-        #try:
         for i in range(self.image_stack.shape[1]):
             self._set_image(i)
             self._show_profiles()
         self.done.emit(self.ID)
-        # except EnvironmentError:
-        #     raise
-        # finally:
-        #     self.done.emit()
-        #     #self.exit()

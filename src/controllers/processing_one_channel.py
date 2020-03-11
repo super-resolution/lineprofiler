@@ -1,7 +1,6 @@
 from controllers.utility import *
 from controllers.processing_template import QSuperThread
 from controllers.micro_services import profile_painter, profile_collector
-#import matplotlib.pyplot as plt
 
 class QProcessThread(QSuperThread):
     """
@@ -25,13 +24,10 @@ class QProcessThread(QSuperThread):
 
         """
         self.current_image = self.image_stack[:,slice].astype(np.uint16)
-        # use green image for line orientation
         processing_image = np.clip(self.current_image[1]/self.intensity_threshold, 0, 255).astype(np.uint8)
         # spline fit skeletonized image
-        self.gradient_table, self.shapes = compute_line_orientation(
-            processing_image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
-        if np.all(self.current_image[2] ==0):
-            self.three_channel = False
+        self.gradient_table, self.shapes = get_center_of_mass_splines(
+            processing_image, self.blur)
         self._fillhole_image()
 
 
@@ -43,7 +39,7 @@ class QProcessThread(QSuperThread):
         -------
 
         """
-        image = self.current_image[0]/self._intensity_threshold
+        image = self.current_image[1]/self._intensity_threshold
         image = np.clip(image,0,255)
 
         self.im_floodfill_inv = create_floodfill_image(image)
@@ -60,7 +56,7 @@ class QProcessThread(QSuperThread):
         for i in range(self.gradient_table.shape[0]):
             running_index += 1
             shape = self.shapes[index]
-            if self.im_floodfill_inv[spline_positions[i,0].astype(np.uint32), spline_positions[i,1].astype(np.uint32)]==0:
+            if self.im_floodfill_inv[spline_positions[i,0].astype(np.uint32)-1, spline_positions[i,1].astype(np.uint32)-1]==0:
                 indices.append(i)
                 to_cut +=1
             if running_index == shape:
@@ -72,7 +68,7 @@ class QProcessThread(QSuperThread):
         self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
 
         # fig, axs = plt.subplots(2, 1, figsize=(9, 6), sharey=True)
-        # image = self.current_image[0] / self.intensity_threshold
+        # image = self.current_image[1] / self.intensity_threshold
         # axs[0].imshow(image)
         # axs[0].set_xlabel("test_image")
         # axs[1].imshow(image)
@@ -108,15 +104,17 @@ class QProcessThread(QSuperThread):
         counter = -1
         count = self.gradient_table.shape[0]
         self.results = {'p_red': [], 'p_green': [], 'p_blue': [], 'distances': []}
+        current_profile_width = int(2*self.profil_width/3*self.px_size*1000)
+        if current_profile_width % 2 != 0:
+            current_profile_width += 1
 
-        painter = profile_painter(self.current_image[0]/self.intensity_threshold, self.path)
+        painter = profile_painter(self.current_image[1]/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
             #collector = profile_collector(self.path, i)
 
             current_profile = {'red':[], 'green':[]}
-            if self.three_channel:
-                current_profile.setdefault('blue',[])
+
 
             for j in range(self.shapes[i]):
                 counter+=1
@@ -125,50 +123,24 @@ class QProcessThread(QSuperThread):
                 # profile line starting at point walking in gradient direction
                 source_point = self.gradient_table[counter,0:2]
 
-
-
-                if self.current_image[0, int(source_point[0]), int(source_point[1])] < 100:
-                    continue
-
                 gradient = self.gradient_table[counter,2:4]
                 gradient = np.arctan(gradient[1] / gradient[0]) + np.pi / 2
 
                 line = line_parameters(source_point, gradient, self.profil_width)
 
-                profile = line_profile(self.current_image[0], line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
-
-                # if profile.shape[0]<499* self.px_size*100:
-                #     print("to short")
-                #     continue
+                profile = line_profile(self.current_image[1], line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
 
                 distance, center = calc_peak_distance(profile)
-                #center = profile.shape[0]/2 #todo: align on green for green evaluation
 
                 if distance < self.lower_limit or distance> self.upper_limit:
                     continue
 
-                profile = profile[int(center-self.profil_width/3*self.px_size*1000):int(center+self.profil_width/3*self.px_size*1000)]
-                if profile.shape[0] < int(2*self.profil_width/3*self.px_size*1000)+1:
+
+                profile = profile[int(center-current_profile_width/2):int(center+current_profile_width/2)]
+                if profile.shape[0] < current_profile_width:
                     continue
                 current_profile['red'].append(profile)
                 self.results['distances'].append(distance)
-
-                profile_g = line_profile(self.current_image[1], line['start'], line['end'], px_size=self.px_size,
-                                         sampling=self.sampling)
-                center = profile_g.argmax()
-                profile_g = profile_g[int(center-self.profil_width/3*self.px_size*1000):int(center+self.profil_width/3*self.px_size*1000)]
-                if profile_g.shape[0] != 2*self.profil_width/3*self.px_size*1000:
-                    continue
-                current_profile['green'].append(profile_g)
-
-                if self.three_channel:
-                    profile_b = line_profile(self.current_image[2], line['start'], line['end'], px_size=self.px_size,
-                                             sampling=self.sampling)
-                    center = profile_b.argmax()
-                    profile_b = profile_b[int(center - self.profil_width/3*self.px_size*1000):int(center + self.profil_width/3*self.px_size*1000)]
-                    if profile_b.shape[0] != int(2 * self.profil_width/3*self.px_size*1000):
-                        continue
-                    current_profile['blue'].append(profile_b)
 
                 # draw line
                 painter.send((line,color))
@@ -176,19 +148,8 @@ class QProcessThread(QSuperThread):
             if current_profile['red']:
                 self.results['p_red'] += current_profile['red']
                 red_mean = self.save_avg_profile(current_profile['red'], "red_"+str(i))
-                self.sig_plot_data.emit(red_mean, self.profil_width/3*self.px_size*1000, i, self.path,
+                self.sig_plot_data.emit(red_mean, current_profile_width/2, i, self.path,
                                  color, len(current_profile['red']))
-
-                self.results['p_green'] += current_profile['green']
-                green_mean = self.save_avg_profile(current_profile['green'], "green_"+str(i))
-                self.sig_plot_data.emit(green_mean, self.profil_width/3*self.px_size*1000, i, self.path+r"/green",
-                                        color, len(current_profile['green']))
-
-                if self.three_channel:
-                    self.results['p_blue'] += current_profile['blue']
-                    blue_mean = self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
-                    self.sig_plot_data.emit(blue_mean, self.profil_width/3*self.px_size*1000, i, self.path + r"/blue",
-                                            color, len(current_profile['blue']))
 
         try:
             painter.send(None)
@@ -196,16 +157,15 @@ class QProcessThread(QSuperThread):
             print("Overlay sucess")
 
         red_mean = self.save_avg_profile(self.results['p_red'],"red_mean")
-        self.save_avg_profile(self.results['p_green'], "green_mean")
-        if self.three_channel:
-            self.save_avg_profile(self.results['p_blue'], "blue_mean")
 
-        self.sig_plot_data.emit(red_mean, self.profil_width/3*self.px_size*1000, 9999, self.path,
+
+        self.sig_plot_data.emit(red_mean, current_profile_width/2, 9999, self.path,
                                 (1.0, 0.0, 0.0, 1.0), len(self.results['p_red']))
+        #todo: plot histogram data
 
         # save profiles and distances
         np.savetxt(self.path + r"\red.txt", np.asarray(self.results['p_red']).T)
-        np.savetxt(self.path + r"\distances_" + str(i) + ".txt", np.array(self.results['distances']))
+        np.savetxt(self.path + r"\distances" + ".txt", np.array(self.results['distances']))
 
         #cv2.imshow("Line Profiles", self.image_RGBA)
 
