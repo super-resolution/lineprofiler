@@ -16,6 +16,7 @@ import networkx as nx
 from scipy import ndimage
 from controllers.fit_function_factory import fit_functions
 from scipy import optimize
+import matplotlib.pyplot as plt
 
 
 def get_center_of_mass_splines(image, blur=9):
@@ -444,11 +445,18 @@ def line_profile(image, start, end, px_size=0.032, sampling=1):
 def calc_peak_distance(profile):
     split1 = profile[:int(profile.shape[0]/2)]
     split2 = profile[int(profile.shape[0]/2):]
+    func = fit_functions["gaussian"]
     distance_o= (split2.argmax() + profile.shape[0]/2) - split1.argmax()
     args1 = fit_data_to(fit_functions["gaussian"],np.arange(split1.shape[0]),split1)
     args2 = fit_data_to(fit_functions["gaussian"],np.arange(split2.shape[0]),split2)
     distance = int(split1.shape[0]-args1[2]+args2[2])
-    center = split1.argmax() + distance/2
+    center = int(args1[2]) + distance/2
+    values1 = func.fit(np.arange(split1.shape[0]), *args1)
+    values2 = func.fit(np.arange(split2.shape[0]), *args2)
+    plt.plot(profile)
+    plt.plot(np.arange(split1.shape[0]), values1)
+    plt.plot(np.arange(split2.shape[0]) +profile.shape[0]/2, values2)
+    plt.show()
     return distance, center
 
 def fit_data_to(func, x, data, expansion=1, chi_squared=False, center=None):

@@ -172,9 +172,24 @@ class Fit:
         return loss
 
 class Hist():
+    """
+    Plot data into a histogram and fit a right sided halfnorm to the histogram.
+    """
     def __init__(self):
         pass
-    def create_histogram(self, values, start=100,stop=500):
+    def create_histogram(self, values, start=300,stop=1200):
+        """
+
+        Parameters
+        ----------
+        values: data to be fitted
+        start: start for the plot
+        stop: for the plot +100
+
+        Returns
+        -------
+
+        """
         matplotlib.rc('font', **{'size' : 12},)
         matplotlib.rcParams['font.sans-serif'] = "Helvetica"
         fig = plt.figure()
@@ -186,7 +201,7 @@ class Hist():
         max_value = np.max(x[0])
         j=0
         for i in range(x[0].shape[0]):
-           if x[0][i]>0.9*max_value:
+           if x[0][i]>0.95*max_value:
                j = i
         func = fit_functions["halfnorm"]
         bin_new = x[1][:-1]+5
@@ -204,7 +219,7 @@ class Hist():
         ax1.plot(x_bin[np.where(values>0)], values[np.where(values>0)]/x[0].max(), c="r", linestyle='dashed')
         fig.text(0.5, 0.01, "strand distance: "+str(np.around(optim[2],2))+r"$\pm$" +str(np.around(optim[1]/2.3548,2)), ha='center')
         ax1.set_xlim(start,stop-100)
-        ax1.set_ylim(0,1)
+        ax1.set_ylim(0,1.1)
 
         print(j)
         ax1.set_ylabel("normed frequency [a.u.]")

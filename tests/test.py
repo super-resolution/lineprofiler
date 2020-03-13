@@ -213,7 +213,7 @@ class TestHistogram():
         histogramer.create_histogram(data)
     def test_collect_distances(self):
         histogramer = Hist()
-        path = r"D:\Daten\Fabi\SNCRevisonEvaluatedData\dStorm"
+        path = r"D:\Daten\Fabi\SNCRevisonEvaluatedData\RCM"
         data = np.array([0])
         folders = [x[1] for x in os.walk(path)]
         for x in folders[0]:

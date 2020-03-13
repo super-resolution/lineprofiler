@@ -24,7 +24,7 @@ class QProcessThread(QSuperThread):
 
         """
         self.current_image = self.image_stack[:,slice].astype(np.uint16)
-        processing_image = np.clip(self.current_image[1]/self.intensity_threshold, 0, 255).astype(np.uint8)
+        processing_image = np.clip(self.current_image[0]/self.intensity_threshold, 0, 255).astype(np.uint8)
         # spline fit skeletonized image
         self.gradient_table, self.shapes = get_center_of_mass_splines(
             processing_image, self.blur)
@@ -39,7 +39,7 @@ class QProcessThread(QSuperThread):
         -------
 
         """
-        image = self.current_image[1]/self._intensity_threshold
+        image = self.current_image[0]/self._intensity_threshold
         image = np.clip(image,0,255)
 
         self.im_floodfill_inv = create_floodfill_image(image)
@@ -49,23 +49,23 @@ class QProcessThread(QSuperThread):
         spline_positions = self.gradient_table[:,0:2]
 
         # compute new gradient table with adjusted line shape
-        indices = []
-        index = 0
-        to_cut = 0
-        running_index = 0
-        for i in range(self.gradient_table.shape[0]):
-            running_index += 1
-            shape = self.shapes[index]
-            if self.im_floodfill_inv[spline_positions[i,0].astype(np.uint32)-1, spline_positions[i,1].astype(np.uint32)-1]==0:
-                indices.append(i)
-                to_cut +=1
-            if running_index == shape:
-                self.shapes[index] -= to_cut
-                to_cut=0
-                index +=1
-                running_index = 0
-
-        self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
+        # indices = []
+        # index = 0
+        # to_cut = 0
+        # running_index = 0
+        # for i in range(self.gradient_table.shape[0]):
+        #     running_index += 1
+        #     shape = self.shapes[index]
+        #     if self.im_floodfill_inv[spline_positions[i,0].astype(np.uint32), spline_positions[i,1].astype(np.uint32)]==0:
+        #         indices.append(i)
+        #         to_cut +=1
+        #     if running_index == shape:
+        #         self.shapes[index] -= to_cut
+        #         to_cut=0
+        #         index +=1
+        #         running_index = 0
+        #
+        # self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
 
         # fig, axs = plt.subplots(2, 1, figsize=(9, 6), sharey=True)
         # image = self.current_image[1] / self.intensity_threshold
@@ -108,7 +108,7 @@ class QProcessThread(QSuperThread):
         if current_profile_width % 2 != 0:
             current_profile_width += 1
 
-        painter = profile_painter(self.current_image[1]/self.intensity_threshold, self.path)
+        painter = profile_painter(self.current_image[0]/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
             #collector = profile_collector(self.path, i)
@@ -128,9 +128,13 @@ class QProcessThread(QSuperThread):
 
                 line = line_parameters(source_point, gradient, self.profil_width)
 
-                profile = line_profile(self.current_image[1], line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
+                profile = line_profile(self.current_image[0], line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
 
-                distance, center = calc_peak_distance(profile)
+                try:
+                    distance, center = calc_peak_distance(profile)
+                except:
+                    print("could not fit")
+                    continue
 
                 if distance < self.lower_limit or distance> self.upper_limit:
                     continue

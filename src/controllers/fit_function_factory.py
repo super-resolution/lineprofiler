@@ -18,7 +18,7 @@ class halfnorm:
 
     @staticmethod
     def guess(param):
-        return [param['height'], 0.5, param['maximas'][0], 0]
+        return [param['height'], 0.5, param['maximas'][0], 3]
 
     @staticmethod
     def fit(x, height, width, center, noise_lvl):
@@ -57,7 +57,7 @@ class gaussian:
     @staticmethod
     def bounds(param):
         return np.array([[0, param['height'] + 0.1], [0, np.inf], [0, param["width"]],
-                          [0, 0.1]]).T
+                          [0, np.inf]]).T
 
     @staticmethod
     def guess(param):

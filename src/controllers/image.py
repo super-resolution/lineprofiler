@@ -268,15 +268,21 @@ class ImageSIM(CustomRowWidget):
             self.metaData['SizeX'] = calibration_px
             self.metaData['SizeY'] = calibration_px
 
-            new_data[1,0] = self.data
+            new_data[0,0] = self.data
             self.data = new_data
         if len(self.data.shape) == 3:
-            new_data = np.zeros((3,1,self.data.shape[-2], self.data.shape[-1]))
-            self.metaData['SizeX'] = calibration_px
-            self.metaData['SizeY'] = calibration_px
+            if self.data.shape[-1] <5:
+                new_data = np.zeros((3,1,self.data.shape[0],self.data.shape[1]))
+                new_data[0,:] = np.sum(self.data,axis=2)
+                self.metaData["ShapeSizeY"] = self.data.shape[0]
+                self.metaData["ShapeSizeX"] = self.data.shape[1]
+            else:
+                new_data = np.zeros((3,1,self.data.shape[-2], self.data.shape[-1]))
+                self.metaData['SizeX'] = calibration_px
+                self.metaData['SizeY'] = calibration_px
 
-            for i in range(self.data.shape[0]):
-                new_data[i,0] = self.data[i]
+                for i in range(self.data.shape[0]):
+                    new_data[i,0] = self.data[i]
             self.data = new_data
         # #Bring all formats in the same shape.
         for i,n in enumerate(self.data.shape):
