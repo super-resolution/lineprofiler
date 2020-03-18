@@ -1,0 +1,10 @@
+div.leftside {
+  width: 48%;
+  padding: 0px 0px 0px 0px;
+  float: left;
+}
+
+div.rightside {
+  margin-left: 48%;
+  /* float: right; */
+}
