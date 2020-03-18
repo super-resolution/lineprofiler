@@ -22,7 +22,8 @@ class QProcessThread(QSuperThread):
             Current slice of image stack
 
         """
-        self.current_image = self.image_stack[1,slice].astype(np.uint16)*10
+        self.current_image = self.image_stack[1,slice].astype(np.uint16)
+
         processing_image = np.clip(self.image_stack[1,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
         # Spline fit skeletonized image
         self.gradient_table, self.shapes = compute_line_orientation(
@@ -40,6 +41,9 @@ class QProcessThread(QSuperThread):
         result = []
         counter = -1
         count = self.gradient_table.shape[0]
+        current_profile_width = int(2*self.profil_width/3*self.px_size*1000)
+        if current_profile_width % 2 != 0:
+            current_profile_width += 1
         painter = profile_painter(self.current_image/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
             color = self.colormap(i/len(self.shapes))
@@ -63,17 +67,18 @@ class QProcessThread(QSuperThread):
                         mic_generator.send((z_profile, z))
 
                 profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
-                profile = profile[int(profile.shape[0]/2-self.profil_width/3*self.px_size*1000):int(profile.shape[0]/2+self.profil_width/3*self.px_size*1000)]
+                profile = profile[int(profile.shape[0]/2-current_profile_width/2):int(profile.shape[0]/2+current_profile_width/2)]
 
-                if profile.shape[0]< int(2*self.profil_width/3*self.px_size*1000)+1:
+                if profile.shape[0]< int(current_profile_width):
                     print("to short")
                     continue
                 collector.send(profile)
                 painter.send((line, color))
-            try:
-                mic_generator.send(None)
-            except StopIteration as err:
-                print("created z-profile")
+            if self.z_project_collection:
+                try:
+                    mic_generator.send(None)
+                except StopIteration as err:
+                    print("created z-profile")
             try:
                 collector.send(None)
             except StopIteration as err:
@@ -90,11 +95,14 @@ class QProcessThread(QSuperThread):
 
         red = np.array(profiles)
         red_mean = np.mean(red, axis=0)
-        np.savetxt(self.path + r"\red_mean.txt", red_mean)
-        self.sig_plot_data.emit(red_mean, profiles[0].shape[0]/2, 9999,
-                                self.path,
-                                (1.0, 0.0, 0.0, 1.0), red.shape[0])
-        np.savetxt(self.path + r"\red.txt", red)
+        try:
+            np.savetxt(self.path + r"\red_mean.txt", red_mean)
+            self.sig_plot_data.emit(red_mean, profiles[0].shape[0]/2, 9999,
+                                    self.path,
+                                    (1.0, 0.0, 0.0, 1.0), red.shape[0])
+            np.savetxt(self.path + r"\red.txt", red)
+        except ValueError:
+            print(self.path + " couldnt be evaluated")
 
 
     def run(self,):
@@ -104,4 +112,4 @@ class QProcessThread(QSuperThread):
         for i in range(self.image_stack.shape[1]):
             self._set_image(i)
             self._show_profiles()
-        self.done.emit(self.ID)
+            self.done.emit(self.ID)

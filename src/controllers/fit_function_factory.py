@@ -14,11 +14,11 @@ class halfnorm:
     @staticmethod
     def bounds(param):
         return np.array([[0, np.inf], [0, np.inf], [0, np.inf],
-                          [0, np.inf]]).T
+                          [0, 5]]).T
 
     @staticmethod
     def guess(param):
-        return [param['height'], 0.5, param['maximas'][0], 3]
+        return [param['height'], 0.5, param['maximas'][0]+1, 0.0]
 
     @staticmethod
     def fit(x, height, width, center, noise_lvl):
@@ -34,7 +34,7 @@ class halfnorm:
         center: float
             Center of gaussian funtcion
         width: float
-            Width of gaussian function
+            Sigma of gaussian function
         noise_lvl: float
             y offset (background lvl)
 
@@ -46,7 +46,7 @@ class halfnorm:
         """
         y = np.zeros_like(x).astype(np.float32)
         indices = np.where(x-center>=0)
-        y[indices] = height * np.exp(-(x[indices] - center) ** 2 / (2 * width ** 2))
+        y[indices] = height * np.exp(-(x[indices] - center) ** 2 / (2 * (width ** 2)))
         #indices = np.where(x - center < 0)
         #y[indices] = noise_lvl
         return y
@@ -77,7 +77,7 @@ class gaussian:
         center: float
             Center of gaussian funtcion
         width: float
-            Width of gaussian function
+            Sigma of gaussian function
         noise_lvl: float
             y offset (background lvl)
 

@@ -8,7 +8,7 @@ from scipy import misc
 
 import czifile
 
-import tifffile
+from tifffile import TiffFile
 
 from lxml import etree as XMLET
 
@@ -167,13 +167,13 @@ class ImageSIM(CustomRowWidget):
             #z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tif"
             if self.z_file_path is not None:
                 if os.path.exists(self.z_file_path):
-                    with tifffile.TiffFile(self.z_file_path) as tif:
+                    with TiffFile(self.z_file_path) as tif:
                         self.data_z = tif.asarray()
                 #z_name = os.path.splitext(self.file_path)[0]+"-z-stack.tiff"
             #if os.path.exists(z_name):
             #    with tifffile.TiffFile(z_name) as tif:
             #        self.data_z = tif.asarray()
-            with tifffile.TiffFile(self.file_path) as tif:
+            with TiffFile(self.file_path) as tif:
                 #print(tif.imagej_metadata)
                 self.data = tif.asarray()#[...,0]#np.moveaxis(tif.asarray(),0,1)
 
@@ -184,8 +184,8 @@ class ImageSIM(CustomRowWidget):
                 self.metaData["SizeZ"] = 1
                 self.metaData["SizeX"] = calibration_px
                 self.metaData["SizeY"] = calibration_px
-                self.metaData["ShapeSizeY"] = self.data.shape[-2]
-                self.metaData["ShapeSizeX"] = self.data.shape[-1]
+                self.metaData["ShapeSizeY"] = self.data.shape[-3]
+                self.metaData["ShapeSizeX"] = self.data.shape[-2]
                 for page in tif.pages:
                     for tag in page.tags.values():
                         tag_name, tag_value = tag.name, tag.value
@@ -221,7 +221,7 @@ class ImageSIM(CustomRowWidget):
 
         #Read Lsm Files.
         elif self.extend == '.lsm':
-            with tifffile.TiffFile(self.file_path) as tif:
+            with TiffFile(self.file_path) as tif:
                 self.data = tif.asarray(memmap=True)
                 headerMetadata = str(tif.pages[0].cz_lsm_scan_info)
                 metadataList = headerMetadata.split("\n*")

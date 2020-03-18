@@ -21,6 +21,25 @@ def save_avg_profile(profile, path, name):
         np.savetxt(path + "\\"+name+".txt", to_save)
 
 @coroutine
+def z_stack_microservice(path):
+    results = {"width":[], "intensity":[]}
+    while True:
+        data = yield
+        if data is None:
+            break
+        else:
+            results["width"].append(data[0])
+            results["intensity"].append(data[1])
+    width = np.array(results["width"])
+    intensity = np.array(results["intensity"])
+    relative = intensity/width
+    whole_data = np.zeros((width.shape[0],3))
+    whole_data[:,0] = width
+    whole_data[:,1] = intensity
+    whole_data[:,2] = relative
+    np.savetxt(path + "_" + "evaluation" + ".txt", whole_data)
+
+@coroutine
 def mic_project_generator(path, i):
     profiles = []
     j = -1

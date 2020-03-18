@@ -7,6 +7,8 @@ from src.controllers.utility import *
 from src.controllers.image import ImageSIM
 from src.controllers import processing_SNC, processing_microtubule, processing_canny, processing_one_channel
 from src.controllers.micro_services import profile_collector, profile_painter
+from tifffile import TiffFile
+from src.controllers.micro_services import *
 
 
 import numpy as np
@@ -209,21 +211,87 @@ class TestArtificialHelixCreation():
 class TestHistogram():
     def test_plot(self):
         histogramer = Hist()
-        data = np.loadtxt(r"C:\Users\biophys\PycharmProjects\Fabi\data\dSTORM_SNC-2_15 nm pixelsize\distances_29.txt")
-        histogramer.create_histogram(data)
+        path = r"C:\Users\biophys\PycharmProjects\Fabi\data\helix_test"
+        data = np.loadtxt(path+"\distances.txt")
+        histogramer.create_histogram(data, path=path)
     def test_collect_distances(self):
         histogramer = Hist()
-        path = r"D:\Daten\Fabi\SNCRevisonEvaluatedData\RCM"
+        path = r"D:\Daten\Fabi\SNCRevisonEvaluatedData\Ultra-ExM"
         data = np.array([0])
         folders = [x[1] for x in os.walk(path)]
         for x in folders[0]:
             data = np.append(data,np.loadtxt(path+"\\"+x+"\distances.txt"))
         data = data[1:]
-        histogramer.create_histogram(data)
+        histogramer.create_histogram(data, path=path)
+
+class TestJansData():
+    def __init__(self):
+        self.path = r"D:\Daten\Jan"
+
+        self.folders = [x[1] for x in os.walk(self.path)]
+        z=0
+
+    def test_run_thread(self):
+        for folder in self.folders[0]:
+            self.files = [x[2] for x in os.walk(self.path+"\\"+folder)]
+            for file in self.files[0]:
+                current_path = self.path +"\\"+folder + "\\" + file
+                if os.path.exists(current_path + "_" + "evaluation" + ".txt"):
+                    continue
+                fitter = Fit()
+                thread = processing_microtubule.QProcessThread()
+                thread.sig_plot_data.connect(fitter.fit_data)
+                if file.split(".")[-1] != "tif":
+                    continue
+
+
+                with TiffFile(current_path) as tif:
+                    self.data = tif.asarray()
+                new_data = np.zeros((2, self.data.shape[0], self.data.shape[1]+50, self.data.shape[2]+50))
+                new_data[1,:,25:25+self.data.shape[1], 25:self.data.shape[2]+25] = self.data[:]
+                self.data = new_data
+
+                service = z_stack_microservice(current_path)
+                fitter.service = service
+                fitter.fit_function = ["gaussian"]
+                thread.set_data(0,self.data, current_path)
+                thread.blur = 4
+                thread.px_size = 0.1984
+                thread.profil_width = 15
+                thread.spline_parameter = 1
+                thread.intensity_threshold = 0
+                thread.run()
+                try:
+                    service.send(None)
+                except StopIteration:
+                    print("success")
+
+def mean_profile_for_condition():
+    path = r"D:\Daten\Fabi\SNCRevisonEvaluatedData\dStorm"
+    data = []
+    folders = [x[1] for x in os.walk(path)]
+    min_len = 999999
+    for x in folders[0]:
+        profile = np.loadtxt(path + "\\" + x + r"\red_mean.txt")
+        data.append(profile[:,1])
+        if profile.shape[0]< min_len:
+            min_len =  profile.shape[0]
+    new_data = []
+    for x in data:
+        x = x[int(x.shape[0]/2-min_len/2):int(x.shape[0]/2+min_len/2)]
+        new_data.append(x)
+    data = np.array(new_data)
+
+    data = np.mean(data,axis=0)
+    to_save = np.array([np.arange(data.shape[0]),data])
+    np.savetxt(path+r"\average_profile.txt",to_save.T)
 
 if __name__ == '__main__':
     # case = TestArtificialHelixCreation()
     # case.setUp()
     # case.test_line_profile_evaluation()
+    #mean_profile_for_condition()
     case = TestHistogram()
-    case.test_collect_distances()
+    case.test_plot()
+    #case = TestJansData()
+    #case.test_run_thread()

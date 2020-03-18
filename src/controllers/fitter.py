@@ -95,7 +95,15 @@ class Fit:
     """
     def __init__(self):
         self.expansion = 1
+        self._service = None
 
+    @property
+    def service(self):
+        return self._service
+
+    @service.setter
+    def service(self, func):
+        self._service = func
 
     @property
     def fit_function(self):
@@ -112,7 +120,9 @@ class Fit:
             #if func not in fit_functions:
             register(globals()[func])
         if len(fit_functions.keys()-unique_val) !=0:
-            fit_functions.pop(*(fit_functions.keys()-unique_val))
+            functions = (fit_functions.keys()-unique_val)
+            for func in functions:
+                fit_functions.pop(func)
         #fit_functions.remove(fit_functions-unique_val)
 
     def fit_data(self, data, center, nth_line=0, path=None, c=(1.0,0.0,0.0,1.0), n_profiles=0):
@@ -148,6 +158,8 @@ class Fit:
             #fit = getattr(self, "fit_data_to_"+name)
             #func = getattr(self, name)
             optim, loss = fit_data_to(func, x, data, expansion=self.expansion, chi_squared=True)
+            if self.service:
+                self.service.send((optim[1],optim[0]))
             txt = name + "fit parameters: \n" + f"Number of profiles: {n_profiles} \n"
             for i,parameter in enumerate(func.fit_parameters):
                 txt += parameter + f"{np.abs(optim[i]):.2f}" + "\n"
@@ -177,7 +189,7 @@ class Hist():
     """
     def __init__(self):
         pass
-    def create_histogram(self, values, start=300,stop=1200):
+    def create_histogram(self, values, path=None, start=400,stop=1100):
         """
 
         Parameters
@@ -201,7 +213,7 @@ class Hist():
         max_value = np.max(x[0])
         j=0
         for i in range(x[0].shape[0]):
-           if x[0][i]>0.95*max_value:
+           if x[0][i]>0.90*max_value:
                j = i
         func = fit_functions["halfnorm"]
         bin_new = x[1][:-1]+5
@@ -211,19 +223,24 @@ class Hist():
         optim[2] *= 10
         optim[2] += start
         optim[1] *= 10
+        optim[-1] *= 10
         x_bin = np.arange(stop)
         values = func.fit(x_bin, *optim)
         #x_bin += start
 
 
         ax1.plot(x_bin[np.where(values>0)], values[np.where(values>0)]/x[0].max(), c="r", linestyle='dashed')
-        fig.text(0.5, 0.01, "strand distance: "+str(np.around(optim[2],2))+r"$\pm$" +str(np.around(optim[1]/2.3548,2)), ha='center')
+        fig.text(0.5, 0.01, "strand distance: "+str(np.around(optim[2],2))+r"$\pm$" +str(np.around(optim[1],2)), ha='center')
         ax1.set_xlim(start,stop-100)
         ax1.set_ylim(0,1.1)
 
         print(j)
         ax1.set_ylabel("normed frequency [a.u.]")
         ax1.set_xlabel("distance [nm]")
-        plt.show()
+        if path:
+            plt.savefig(path + r'\histogram.png', dpi=1200)
+        #     plt.close(fig)
+        # else:
+            plt.show()
 
 

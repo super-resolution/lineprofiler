@@ -197,7 +197,7 @@ def create_gradient_image(image, blur, sobel=9):
     return np.arctan2(X, Y)
 
 
-def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, expansion2=1):
+def compute_line_orientation(image, blur, min_len=10, spline=3, expansion=1, expansion2=1):
     """
     Compute the orientation and position of line resembling patterns in an image.
 
@@ -275,8 +275,8 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
 
     cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\skel.tif", skeleton)
     # contour = self.collapse_contours(contours)
-    #cv2.imshow("asdf", skeleton * 255)
-    #cv2.waitKey(0)
+    # cv2.imshow("asdf", skeleton * 255)
+    # cv2.waitKey(0)
 
     colormap = label(skeleton, connectivity=2)
     lines = []
@@ -297,7 +297,7 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
         line_itterator += 1
         print(line_itterator)
         points = np.array(lines[line_itterator]).T
-        if points.shape[0] < 30:
+        if points.shape[0] < min_len:
             continue
         order = order_points_to_line(points)
         if len(order)<points.shape[0]:
@@ -308,19 +308,19 @@ def compute_line_orientation(image, blur, min_len=100, spline=3, expansion=1, ex
         distance = np.cumsum(np.sqrt(np.sum(np.diff(points, axis=0) ** 2, axis=1)))
 
         direction_change = 9999999
-        for i in range(distance.shape[0]):
-            if i + 30 < distance.shape[0]:
-                vec1 = points[i + 15] - points[i]
-                vec2 = points[i + 30] - points[i + 15]
-                direction = np.dot(vec1, vec2)
-                if direction < 90:
-                    direction_change = i +1
-            if distance[i] - distance[i - 1] > 10 or i > direction_change:
-                distance = distance[:i]
-                lines.append(points[i + 2:].T)
-                points = points[:i + 1]
-                line_length += 1
-                break
+        # for i in range(distance.shape[0]):
+        #     if i + 30 < distance.shape[0]:
+        #         vec1 = points[i + 15] - points[i]
+        #         vec2 = points[i + 30] - points[i + 15]
+        #         direction = np.dot(vec1, vec2)
+        #         if direction < 90:
+        #             direction_change = i +1
+        #     if distance[i] - distance[i - 1] > 10 or i > direction_change:
+        #         distance = distance[:i]
+        #         lines.append(points[i + 2:].T)
+        #         points = points[:i + 1]
+        #         line_length += 1
+        #         break
         if points.shape[0] < min_len:
             continue
         distance = np.insert(distance, 0, 0) / distance[-1]

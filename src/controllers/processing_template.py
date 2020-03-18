@@ -47,6 +47,8 @@ class QSuperThread(QThread):
         self.path = path
         self.image_stack = image_stack[0:3]
 
+
+
     @property
     def intensity_threshold(self):
         return self._intensity_threshold
