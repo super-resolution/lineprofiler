@@ -211,7 +211,7 @@ class TestArtificialHelixCreation():
 class TestHistogram():
     def test_plot(self):
         histogramer = Hist()
-        path = r"C:\Users\biophys\PycharmProjects\Fabi\data\helix_test"
+        path = r"C:\Users\biophys\PycharmProjects\Fabi\data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1"
         data = np.loadtxt(path+"\distances.txt")
         histogramer.create_histogram(data, path=path)
     def test_collect_distances(self):

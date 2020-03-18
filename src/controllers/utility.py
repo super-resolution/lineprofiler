@@ -453,10 +453,10 @@ def calc_peak_distance(profile):
     center = int(args1[2]) + distance/2
     values1 = func.fit(np.arange(split1.shape[0]), *args1)
     values2 = func.fit(np.arange(split2.shape[0]), *args2)
-    plt.plot(profile)
-    plt.plot(np.arange(split1.shape[0]), values1)
-    plt.plot(np.arange(split2.shape[0]) +profile.shape[0]/2, values2)
-    plt.show()
+    #plt.plot(profile)
+    #plt.plot(np.arange(split1.shape[0]), values1)
+    #plt.plot(np.arange(split2.shape[0]) +profile.shape[0]/2, values2)
+    #plt.show()
     return distance, center
 
 def fit_data_to(func, x, data, expansion=1, chi_squared=False, center=None):

@@ -184,8 +184,8 @@ class ImageSIM(CustomRowWidget):
                 self.metaData["SizeZ"] = 1
                 self.metaData["SizeX"] = calibration_px
                 self.metaData["SizeY"] = calibration_px
-                self.metaData["ShapeSizeY"] = self.data.shape[-3]
-                self.metaData["ShapeSizeX"] = self.data.shape[-2]
+                self.metaData["ShapeSizeY"] = self.data.shape[-2]
+                self.metaData["ShapeSizeX"] = self.data.shape[-1]
                 for page in tif.pages:
                     for tag in page.tags.values():
                         tag_name, tag_value = tag.name, tag.value
@@ -271,13 +271,13 @@ class ImageSIM(CustomRowWidget):
             new_data[0,0] = self.data
             self.data = new_data
         if len(self.data.shape) == 3:
-            if self.data.shape[-1] <5:
+            if self.data.shape[2] <5:
                 new_data = np.zeros((3,1,self.data.shape[0],self.data.shape[1]))
                 new_data[0,:] = np.sum(self.data,axis=2)
                 self.metaData["ShapeSizeY"] = self.data.shape[0]
                 self.metaData["ShapeSizeX"] = self.data.shape[1]
             else:
-                new_data = np.zeros((3,1,self.data.shape[-2], self.data.shape[-1]))
+                new_data = np.zeros((3,1,self.data.shape[1], self.data.shape[2]))
                 self.metaData['SizeX'] = calibration_px
                 self.metaData['SizeY'] = calibration_px
 

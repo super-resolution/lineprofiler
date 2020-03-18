@@ -108,6 +108,9 @@ class QProcessThread(QSuperThread):
         counter = -1
         count = self.gradient_table.shape[0]
         self.results = {'p_red': [], 'p_green': [], 'p_blue': [], 'distances': []}
+        current_profile_width = int(2*self.profil_width/3*self.px_size*1000)
+        if current_profile_width % 2 != 0:
+            current_profile_width += 1
 
         painter = profile_painter(self.current_image[0]/self.intensity_threshold, self.path)
         for i in range(len(self.shapes)):
@@ -147,8 +150,8 @@ class QProcessThread(QSuperThread):
                 if distance < self.lower_limit or distance> self.upper_limit:
                     continue
 
-                profile = profile[int(center-self.profil_width/3*self.px_size*1000):int(center+self.profil_width/3*self.px_size*1000)]
-                if profile.shape[0] < int(2*self.profil_width/3*self.px_size*1000)+1:
+                profile = profile[int(center-current_profile_width/2):int(center+current_profile_width/2)]
+                if profile.shape[0] < int(current_profile_width):
                     continue
                 current_profile['red'].append(profile)
                 self.results['distances'].append(distance)
@@ -156,8 +159,8 @@ class QProcessThread(QSuperThread):
                 profile_g = line_profile(self.current_image[1], line['start'], line['end'], px_size=self.px_size,
                                          sampling=self.sampling)
                 center = profile_g.argmax()
-                profile_g = profile_g[int(center-self.profil_width/3*self.px_size*1000):int(center+self.profil_width/3*self.px_size*1000)]
-                if profile_g.shape[0] != 2*self.profil_width/3*self.px_size*1000:
+                profile_g = profile_g[int(center-current_profile_width/2):int(center+current_profile_width/2)]
+                if profile_g.shape[0] != current_profile_width:
                     continue
                 current_profile['green'].append(profile_g)
 
@@ -165,8 +168,8 @@ class QProcessThread(QSuperThread):
                     profile_b = line_profile(self.current_image[2], line['start'], line['end'], px_size=self.px_size,
                                              sampling=self.sampling)
                     center = profile_b.argmax()
-                    profile_b = profile_b[int(center - self.profil_width/3*self.px_size*1000):int(center + self.profil_width/3*self.px_size*1000)]
-                    if profile_b.shape[0] != int(2 * self.profil_width/3*self.px_size*1000):
+                    profile_b = profile_b[int(center - current_profile_width/2):int(center + current_profile_width/2)]
+                    if profile_b.shape[0] != int(current_profile_width):
                         continue
                     current_profile['blue'].append(profile_b)
 
@@ -176,18 +179,18 @@ class QProcessThread(QSuperThread):
             if current_profile['red']:
                 self.results['p_red'] += current_profile['red']
                 red_mean = self.save_avg_profile(current_profile['red'], "red_"+str(i))
-                self.sig_plot_data.emit(red_mean, self.profil_width/3*self.px_size*1000, i, self.path,
+                self.sig_plot_data.emit(red_mean, current_profile_width, i, self.path,
                                  color, len(current_profile['red']))
 
                 self.results['p_green'] += current_profile['green']
                 green_mean = self.save_avg_profile(current_profile['green'], "green_"+str(i))
-                self.sig_plot_data.emit(green_mean, self.profil_width/3*self.px_size*1000, i, self.path+r"/green",
+                self.sig_plot_data.emit(green_mean, current_profile_width, i, self.path+r"/green",
                                         color, len(current_profile['green']))
 
                 if self.three_channel:
                     self.results['p_blue'] += current_profile['blue']
                     blue_mean = self.save_avg_profile(current_profile['blue'], "blue_" + str(i))
-                    self.sig_plot_data.emit(blue_mean, self.profil_width/3*self.px_size*1000, i, self.path + r"/blue",
+                    self.sig_plot_data.emit(blue_mean, current_profile_width, i, self.path + r"/blue",
                                             color, len(current_profile['blue']))
 
         try:
@@ -200,12 +203,12 @@ class QProcessThread(QSuperThread):
         if self.three_channel:
             self.save_avg_profile(self.results['p_blue'], "blue_mean")
 
-        self.sig_plot_data.emit(red_mean, self.profil_width/3*self.px_size*1000, 9999, self.path,
+        self.sig_plot_data.emit(red_mean,current_profile_width, 9999, self.path,
                                 (1.0, 0.0, 0.0, 1.0), len(self.results['p_red']))
 
         # save profiles and distances
         np.savetxt(self.path + r"\red.txt", np.asarray(self.results['p_red']).T)
-        np.savetxt(self.path + r"\distances_" + str(i) + ".txt", np.array(self.results['distances']))
+        np.savetxt(self.path + r"\distances"  + ".txt", np.array(self.results['distances']))
 
         #cv2.imshow("Line Profiles", self.image_RGBA)
 
