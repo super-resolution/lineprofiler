@@ -11,6 +11,9 @@ class FunctionalTestLineProfiler(unittest.TestCase):
     #todo: add test for center of mass computation
     #todo: evaluate histogram
     def setUp(self):
+        self.path = os.getcwd()
+        self.SCTestFile = os.path.dirname(self.path)+ r"\test_data"+r"\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif"
+        self.microtubTestFile = os.path.dirname(self.path)+ r"\test_data"+r"\Expansion dSTORM-Line Profile test.tif"
         self.qtApp = QApplication(sys.argv)
         qtWindow = QMainWindow()
         self.mainWindow = MainWindow()
@@ -24,7 +27,7 @@ class FunctionalTestLineProfiler(unittest.TestCase):
     def test_open_file_and_display_in_file_list(self):
         item = QListWidgetItem()
         self.mainWindow.image_list.addItem(item)
-        row = ImageSIM(r"C:\Users\biophys\Pictures\Camera Roll\MAX_SIM3czi_Structured Illumination-CH1-CH2.tif")
+        row = ImageSIM(self.SCTestFile)
         self.mainWindow.image_list.setItemWidget(item, row)
         item.setSizeHint(row.minimumSizeHint())
         self.mainWindow.image_list.item(0).setSelected(True)
@@ -35,12 +38,12 @@ class FunctionalTestLineProfiler(unittest.TestCase):
         print("Open file successfully tested")
 
     def test_run_multiple_files_in_different_modi_and_threads(self):
-        image = ImageSIM(r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif")
+        image = ImageSIM(self.SCTestFile)
         self.interface.update_config()
         self.interface.config["intensity_threshold"] = 3
         self.interface.show_image(image)
         self.interface.start_thread()
-        image = ImageSIM(r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data_microtub\Expansion dSTORM-Line Profile test.tif")
+        image = ImageSIM(self.microtubTestFile)
         self.interface.update_config()
         self.interface.config["intensity_threshold"] = -3
         self.interface.show_image(image)
@@ -97,7 +100,7 @@ class FunctionalTestLineProfiler(unittest.TestCase):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(2)
         self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SNC one channel", msg="Wrong combo box Text")
         self.processing_configurations()
-        image = ImageSIM(r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif")
+        image = ImageSIM(self.SCTestFile)
         self.interface.update_config()
         self.interface.config["intensity_threshold"] = 3
         self.interface.show_image(image)
