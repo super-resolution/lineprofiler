@@ -42,6 +42,7 @@ class MainWindow(Ui_MainWindow):
         return progressBar
 
     def _add_handlers(self):
+        self.pushButton_histogramize.clicked.connect(self.interface.plot_histogram)
         self.pushButton_open.clicked.connect(
                 lambda: self._open_files())
         self.pushButton_close_all.clicked.connect(

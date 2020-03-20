@@ -39,11 +39,13 @@ class FunctionalTestLineProfiler(unittest.TestCase):
 
     def test_run_multiple_files_in_different_modi_and_threads(self):
         image = ImageSIM(self.SCTestFile)
+        image.parse()
         self.interface.update_config()
         self.interface.config["intensity_threshold"] = 3
         self.interface.show_image(image)
         self.interface.start_thread()
         image = ImageSIM(self.microtubTestFile)
+        image.parse()
         self.interface.update_config()
         self.interface.config["intensity_threshold"] = -3
         self.interface.show_image(image)

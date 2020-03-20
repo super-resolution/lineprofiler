@@ -348,7 +348,7 @@ border-bottom-left-radius: 10px;
                    <x>10</x>
                    <y>19</y>
                    <width>891</width>
-                   <height>101</height>
+                   <height>103</height>
                   </rect>
                  </property>
                  <layout class="QGridLayout" name="gridLayout">
@@ -773,6 +773,13 @@ border-bottom-left-radius: 10px;
                   </property>
                   <property name="value">
                    <double>1.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <widget class="QPushButton" name="pushButton_histogramize">
+                  <property name="text">
+                   <string>Plot distance histogram</string>
                   </property>
                  </widget>
                 </item>

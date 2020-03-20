@@ -79,15 +79,6 @@ class CustomRowWidget(QWidget):
             e.ignore()
 
 
-#Super class for file handling via widget
-class MicroscopeImage(QListWidgetItem):
-    def __init__(self, *args, **kwargs):
-        super(MicroscopeImage, self).__init__(*args, **kwargs)
-        self.setText(args[0].split(os.sep)[-1])
-        self.file_path = str(args[0])
-        self.isParsingNeeded = True
-        # self.channels = {}
-
 
 #Rewritten class to read different formats of microscope images and bring them in the same shape.
 #Supportet formats are .czi; .lsm ;.tiff

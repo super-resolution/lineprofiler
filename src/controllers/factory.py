@@ -1,5 +1,6 @@
 from controllers import processing_microtubule, processing_SNC, processing_one_channel
 
+
 def process_factory(mode, microscope_image, config, fit_func, tear_down, progress_bar, ID):
     if mode == "Microtubule":
         process = processing_microtubule.QProcessThread()

@@ -18,7 +18,7 @@ class halfnorm:
 
     @staticmethod
     def guess(param):
-        return [param['height'], 0.5, param['maximas'][0]+1, 0.0]
+        return [param['height'], 0.5, param['maximas'][0], 0.0]
 
     @staticmethod
     def fit(x, height, width, center, noise_lvl):

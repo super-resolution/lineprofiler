@@ -1,6 +1,7 @@
 from unittest import TestCase
 import unittest
 from matplotlib import cm
+from controllers.random_GUI import MainWindow
 
 from src.controllers.fitter import *
 from src.controllers.utility import *
@@ -10,21 +11,32 @@ from src.controllers.micro_services import profile_collector, profile_painter
 from tifffile import TiffFile
 from src.controllers.micro_services import *
 
-
+from PyQt5.QtWidgets import QApplication, QMainWindow
+import sys
 import numpy as np
 import os
 import cv2
 
 class FitterTest(TestCase):
     def setUp(self):
+        self.qtApp = QApplication(sys.argv)
         self.fitter = Fit()
-        self.path = r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif"
-        image = ImageSIM(self.path)
-        image.parse()
-        self.data = image.data
-        self.save_path = os.path.dirname(os.getcwd()) + "\\data\\" + os.path.splitext(os.path.basename(self.path))[0]
+        self.path = os.getcwd()
+        self.SCTestFile = os.path.dirname(self.path)+ r"\test_data"+r"\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif"
+        self.microtubTestFile = os.path.dirname(self.path)+ r"\test_data"+r"\Expansion dSTORM-Line Profile test.tif"
+        self.image = ImageSIM(self.SCTestFile)
+        self.image.parse()
+        self.data = self.image.data
+        self.save_path = os.path.dirname(os.getcwd()) + "\\data\\" + os.path.splitext(os.path.basename(self.image.file_path))[0]
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
+
+    def test_collect_distance_data_for_histogram(self):
+        image_list = [self.image]
+        #thread = processing_one_channel.QProcessThread()
+        #self.run_thread(thread)
+        histogramer = Hist(image_list)
+        histogramer.create_histogram()
 
     def test_fit_functions_setter(self):
         fit_function_name = {"gaussian", "bigaussian", "trigaussian", "cylinder_projection", "multi_cylinder_projection"}
@@ -60,32 +72,29 @@ class FitterTest(TestCase):
         os.remove(self.save_path + r"\Image_with_profiles.tif")
         os.remove(self.save_path + r'\Image_overlay.tif')
 
-    def test_processing_SNC(self):
-        thread = processing_SNC.QProcessThread()
-        thread.set_data(self.data, self.path)
-        thread.blur = 20
-        thread.px_size = 0.032
-        thread.intensity_threshold = 3.9
-        thread.run()
-        self.painter()
-
-
-    def test_processing_canny(self):
-        thread = processing_canny.QProcessThread()
-        thread.set_data(self.data, self.path)
+    def run_thread(self, thread):
+        thread.set_data(0, self.data, self.image.file_path)
         thread.blur = 9
         thread.px_size = 0.032
         thread.intensity_threshold = 3.9
+        thread.profil_width = 80
+        thread.spline_parameter = 1
         thread.run()
+
+    def test_processing_SNC(self):
+        thread = processing_SNC.QProcessThread()
+        self.run_thread(thread)
+        self.painter()
+
+
+    def test_processing_one_channel(self):
+        thread = processing_one_channel.QProcessThread()
+        self.run_thread(thread)
         self.painter()
 
     def test_processing_microtuboli(self):
         thread = processing_microtubule.QProcessThread()
-        thread.set_data(self.data, self.path)
-        thread.blur = 20
-        thread.px_size = 0.032
-        thread.intensity_threshold = 3.9
-        thread.run()
+        self.run_thread(thread)
         self.painter()
 
     def test_profile_collector(self):
@@ -123,10 +132,12 @@ class FitterTest(TestCase):
         self.painter()
 
 
+
+
     def tearDown(self):
         pass
 
-class TestThreadScheduler(unittest.TestCase):
+class TestThreadScheduler():
     def setUp(self):
         path = r"C:\Users\biophys\PycharmProjects\Fabi\data\test_data\MAX_3Farben-X1_16um_Out_Channel Alignment-5-X1.tif"
         image = ImageSIM(path)
@@ -164,49 +175,6 @@ class TestThreadScheduler(unittest.TestCase):
 
         """
         pass
-
-class TestArtificialHelixCreation():
-    def setUp(self):
-        strand_distance = 800 # In nanometer
-        px_size = 32.24 # In nanometer
-        resolution = 200
-        start_point = (500,100)
-        angle = np.pi/12
-        x = np.arange(800)
-        y = np.cos(x/50)*strand_distance/(2*px_size)+500
-        y2 = np.cos(x/50+np.pi)*strand_distance/(2*px_size)+500
-        strand1 = np.array([x,y])
-        strand2 = np.array([x,y2])
-        R = np.array([[np.cos(angle),-np.sin(angle)],[np.sin(angle),np.cos(angle)]])
-        strand1 = np.dot(strand1.T, R.T).astype(np.int32)
-        strand2 = np.dot(strand2.T, R.T).astype(np.int32)
-
-        image = np.zeros((1000,1000)).astype(np.uint8)
-        image[strand1[:,0]+200,strand1[:,1]] = 255
-        image[strand2[:,0]+200,strand2[:,1]] = 255
-        blur = resolution/(px_size)
-        print(blur)
-        blur_i = int(np.round(blur))
-        self.image = cv2.blur(image, (blur_i, blur_i))
-
-    def test_line_profile_evaluation(self):
-        fitter = Fit()
-        config = {"intensity_threshold":0,
-                       "px_size":0.03224,
-                       "blur":12,
-                       "spline_parameter":0.32,
-                       "upper_limit":1200,
-                       "lower_limit":400,
-                       "profil_width":80}
-        thread = processing_one_channel.QProcessThread()
-        thread.sig_plot_data.connect(fitter.fit_data)
-        for k in config.keys():
-            setattr(thread, k, config[k])
-        path = os.path.dirname(os.getcwd()) + "\\data\\" +"\\helix_test"
-        image_stack = np.zeros((3,1,*self.image.shape))
-        image_stack[1,:] = self.image
-        thread.set_data(0, image_stack, path)
-        thread.run()
 
 class TestHistogram():
     def test_plot(self):
@@ -287,11 +255,12 @@ def mean_profile_for_condition():
     np.savetxt(path+r"\average_profile.txt",to_save.T)
 
 if __name__ == '__main__':
+    unittest.main()
     # case = TestArtificialHelixCreation()
     # case.setUp()
     # case.test_line_profile_evaluation()
     #mean_profile_for_condition()
-    case = TestHistogram()
-    case.test_plot()
+    #case = TestHistogram()
+    #case.test_plot()
     #case = TestJansData()
     #case.test_run_thread()

@@ -476,9 +476,10 @@ def fit_data_to(func, x, data, expansion=1, chi_squared=False, center=None):
     """
     param = {}
     param['maximas'] = [data.argmax()]#find_maximas(data)
+    param['height'] = data.max()
     if center:
         param['maximas'] = [center]
-    param['height'] = data.max()
+        param['height'] = data[center]
     param['CM'] = np.average(x, weights=data)
     param['expansion'] = expansion
     param['width'] = data.shape[0]

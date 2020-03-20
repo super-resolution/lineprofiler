@@ -49,23 +49,23 @@ class QProcessThread(QSuperThread):
         spline_positions = self.gradient_table[:,0:2]
 
         # compute new gradient table with adjusted line shape
-        # indices = []
-        # index = 0
-        # to_cut = 0
-        # running_index = 0
-        # for i in range(self.gradient_table.shape[0]):
-        #     running_index += 1
-        #     shape = self.shapes[index]
-        #     if self.im_floodfill_inv[spline_positions[i,0].astype(np.uint32), spline_positions[i,1].astype(np.uint32)]==0:
-        #         indices.append(i)
-        #         to_cut +=1
-        #     if running_index == shape:
-        #         self.shapes[index] -= to_cut
-        #         to_cut=0
-        #         index +=1
-        #         running_index = 0
-        #
-        # self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
+        indices = []
+        index = 0
+        to_cut = 0
+        running_index = 0
+        for i in range(self.gradient_table.shape[0]):
+            running_index += 1
+            shape = self.shapes[index]
+            if self.im_floodfill_inv[spline_positions[i,0].astype(np.uint32), spline_positions[i,1].astype(np.uint32)]==0:
+                indices.append(i)
+                to_cut +=1
+            if running_index == shape:
+                self.shapes[index] -= to_cut
+                to_cut=0
+                index +=1
+                running_index = 0
+
+        self.gradient_table = np.delete(self.gradient_table, np.array(indices).astype(np.uint32), axis=0)
 
         # fig, axs = plt.subplots(2, 1, figsize=(9, 6), sharey=True)
         # image = self.current_image[1] / self.intensity_threshold

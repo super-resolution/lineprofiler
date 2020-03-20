@@ -1,5 +1,5 @@
 from controllers.display import *
-from controllers.fitter import Fit
+from controllers.fitter import Fit, Hist
 from matplotlib import cm
 import weakref
 from controllers.factory import process_factory
@@ -185,6 +185,13 @@ class Interface():
         print(self.main_window.checkBox_channel0.isCheckable())
         self.display.show_image()
         #self.push_image_to_thread()
+
+    def plot_histogram(self):
+        l = []
+        for i in range(self.main_window.image_list.count()):
+            l.append(self.main_window.image_list.itemWidget(self.main_window.image_list.item(i)))
+        histogram = Hist(l)
+        histogram.create_histogram()
 
     def update_image(self, channel, value):
         self.current_image.index = (channel, value)

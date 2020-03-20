@@ -6,6 +6,7 @@ from collections import abc,namedtuple
 from controllers.fit_function_factory import *
 from controllers.utility import fit_data_to
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 import weakref
 import gc
 
@@ -187,9 +188,19 @@ class Hist():
     """
     Plot data into a histogram and fit a right sided halfnorm to the histogram.
     """
-    def __init__(self):
-        pass
-    def create_histogram(self, values, path=None, start=400,stop=1100):
+    def __init__(self, image_list=None):
+        if image_list:
+            self.distances = np.array([0])
+            for image in image_list:
+                path = os.path.dirname(os.getcwd()) + "\\data\\" + os.path.splitext(os.path.basename(image.file_path))[0] + "\distances.txt"
+                if os.path.exists(path):
+                    self.distances = np.append(self.distances, np.loadtxt(path))
+            try:
+                self.distances = self.distances[1:]
+            except IndexError("No distances computed yet"):
+                self.distances = None
+
+    def create_histogram(self, values=None, path=None, start=400,stop=1100):
         """
 
         Parameters
@@ -202,6 +213,12 @@ class Hist():
         -------
 
         """
+        if values is not None and self.distances is not None:
+            values = np.append(values, self.distances)
+        elif values is None and self.distances is not None:
+            values = self.distances
+        elif values is None and self.distances is None:
+            raise ValueError("No data")
         matplotlib.rc('font', **{'size' : 12},)
         matplotlib.rcParams['font.sans-serif'] = "Helvetica"
         fig = plt.figure()
@@ -211,36 +228,40 @@ class Hist():
         for item in x[2]:
             item.set_height(item.get_height() / x[0].max())
         max_value = np.max(x[0])
-        j=0
-        for i in range(x[0].shape[0]):
-           if x[0][i]>0.90*max_value:
-               j = i
-        func = fit_functions["halfnorm"]
-        bin_new = x[1][:-1]+5
-        x_bin = np.arange(x[1].shape[0]-1)
-        center_guess = x_bin[j]
-        optim = fit_data_to(func, x_bin, x[0], center=center_guess)
-        optim[2] *= 10
-        optim[2] += start
-        optim[1] *= 10
-        optim[-1] *= 10
-        x_bin = np.arange(stop)
-        values = func.fit(x_bin, *optim)
-        #x_bin += start
+        rect = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='lightgoldenrodyellow')
+        threshold_slider = Slider(rect, 'fit to rightmost peak of ..% maximum', 0.0, 1.0, valinit=0.9, valstep=0.1)
+        fit, = ax1.plot(1,c="r", linestyle='dashed')
+        text = fig.text(0.5, 0.01, "", ha='center')
+        def update(thresh):
+            j=0
+            for i in range(x[0].shape[0]):
+               if x[0][i]>thresh*max_value:
+                   j = i
+            func = fit_functions["halfnorm"]
+            x_bin = np.arange(x[1].shape[0]-1)
+            center_guess = x_bin[j]
+            optim = fit_data_to(func, x_bin, x[0], center=center_guess)
+            optim[1:4] *= 10
+            print(optim)
+            optim[2] += start+5
+            x_bin = np.arange(stop)
+            values = func.fit(x_bin, *optim)
+            fit.set_xdata(x_bin[np.where(values>0)])
+            fit.set_ydata(values[np.where(values>0)]/x[0].max())
+            text.set_text("strand distance: " + str(np.around(optim[2], 2)) + r"$\pm$" + str(np.around(optim[1], 2)))
 
-
-        ax1.plot(x_bin[np.where(values>0)], values[np.where(values>0)]/x[0].max(), c="r", linestyle='dashed')
-        fig.text(0.5, 0.01, "strand distance: "+str(np.around(optim[2],2))+r"$\pm$" +str(np.around(optim[1],2)), ha='center')
+        update(0.9)
+        threshold_slider.on_changed(update)
         ax1.set_xlim(start,stop-100)
         ax1.set_ylim(0,1.1)
 
-        print(j)
         ax1.set_ylabel("normed frequency [a.u.]")
         ax1.set_xlabel("distance [nm]")
+        plt.show()
+
         if path:
             plt.savefig(path + r'\histogram.png', dpi=1200)
         #     plt.close(fig)
         # else:
-            plt.show()
 
 
