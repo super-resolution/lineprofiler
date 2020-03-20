@@ -22,9 +22,9 @@ class QProcessThread(QSuperThread):
             Current slice of image stack
 
         """
-        self.current_image = self.image_stack[1,slice].astype(np.uint16)
+        self.current_image = self.image_stack[0,slice].astype(np.uint16)
 
-        processing_image = np.clip(self.image_stack[1,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
+        processing_image = np.clip(self.image_stack[0,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
         # Spline fit skeletonized image
         self.gradient_table, self.shapes = compute_line_orientation(
             processing_image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)

@@ -146,7 +146,7 @@ class Interface():
     #     self.current_processing_thread.upper_lim = value
 
     def set_channel_visible(self, i, enabled):
-        self.current_image.channel = (i,enabled)
+        self.current_image.channel = (i, enabled)
         self.display.show_image()
 
     def slider_changed(self, ch, i):
