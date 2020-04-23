@@ -93,14 +93,14 @@ class FunctionalTestLineProfiler(unittest.TestCase):
 
     def test_snc_options(self):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(1)
-        self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SNC", msg="Wrong combo box Text")
+        self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SC", msg="Wrong combo box Text")
         self.processing_configurations()
         print("SNC Mode successfully tested")
 
 
     def test_snc_one_channel(self):
         self.mainWindow.comboBox_operation_mode.setCurrentIndex(2)
-        self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SNC one channel", msg="Wrong combo box Text")
+        self.assertEqual(self.mainWindow.comboBox_operation_mode.currentText(), "SC one channel", msg="Wrong combo box Text")
         self.processing_configurations()
         image = ImageSIM(self.SCTestFile)
         self.interface.update_config()
