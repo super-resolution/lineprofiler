@@ -308,19 +308,19 @@ def compute_line_orientation(image, blur, min_len=10, spline=3, expansion=1, exp
         distance = np.cumsum(np.sqrt(np.sum(np.diff(points, axis=0) ** 2, axis=1)))
 
         direction_change = 9999999
-        # for i in range(distance.shape[0]):
-        #     if i + 30 < distance.shape[0]:
-        #         vec1 = points[i + 15] - points[i]
-        #         vec2 = points[i + 30] - points[i + 15]
-        #         direction = np.dot(vec1, vec2)
-        #         if direction < 90:
-        #             direction_change = i +1
-        #     if distance[i] - distance[i - 1] > 10 or i > direction_change:
-        #         distance = distance[:i]
-        #         lines.append(points[i + 2:].T)
-        #         points = points[:i + 1]
-        #         line_length += 1
-        #         break
+        for i in range(distance.shape[0]):
+            if i + 30 < distance.shape[0]:
+                vec1 = points[i + 15] - points[i]
+                vec2 = points[i + 30] - points[i + 15]
+                direction = np.dot(vec1, vec2)
+                if direction < 90:
+                    direction_change = i +1
+            if distance[i] - distance[i - 1] > 10 or i > direction_change:
+                distance = distance[:i]
+                lines.append(points[i + 2:].T)
+                points = points[:i + 1]
+                line_length += 1
+                break
         if points.shape[0] < min_len:
             continue
         distance = np.insert(distance, 0, 0) / distance[-1]

@@ -164,7 +164,7 @@ class Fit:
             txt = name + "fit parameters: \n" + f"Number of profiles: {n_profiles} \n"
             for i,parameter in enumerate(func.fit_parameters):
                 txt += parameter + f"{np.abs(optim[i]):.2f}" + "\n"
-            ax1.plot(x_aligned, func.fit(x, *optim)/data.max() ,
+            ax1.plot(x_aligned, func.fit(x, *optim)/data.max(),
                     lw=1, c=c, ls='--', label=name)
             ax1.legend(loc='best')
             ax1.set_ylabel("normed intensity [a.u.]")
@@ -175,7 +175,7 @@ class Fit:
                 path_new = path+ r"\\"+name
                 if not os.path.exists(path_new):
                     os.makedirs(path_new)
-                plt.savefig(path_new +rf'\profile_{nth_line}.png')
+                plt.savefig(path_new +rf'\profile_{nth_line}.svg', format="svg")
             plt.close(fig)
         plt.close("all")
         x= weakref.ref(fig)

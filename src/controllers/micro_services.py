@@ -58,7 +58,7 @@ def mic_project_generator(path, i):
         profiles[j] = np.vstack(profile)
     profiles = np.array(profiles)
     out = np.mean(profiles, axis=0)
-    mic_project = out.value * 100
+    mic_project = out * 100
     tifffile.imwrite(path + r"\mic_project" + str(i) + ".tif", mic_project.astype(np.uint16))
     return out
 
