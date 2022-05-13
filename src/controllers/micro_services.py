@@ -1,7 +1,7 @@
 from functools import wraps
 from collections import abc
 import numpy as np
-import tifffile
+from tifffile import TiffWriter
 import cv2
 
 def coroutine(func):
@@ -59,7 +59,8 @@ def mic_project_generator(path, i):
     profiles = np.array(profiles)
     out = np.mean(profiles, axis=0)
     mic_project = out * 100
-    tifffile.imwrite(path + r"\mic_project" + str(i) + ".tif", mic_project.astype(np.uint16))
+    with TiffWriter(path + r"\mic_project" + str(i) + ".tif") as tif:
+        tif.save(mic_project.astype(np.uint16), photometric='minisblack')
     return out
 
 @coroutine
@@ -106,9 +107,10 @@ def profile_painter(image, path):
     image_writer(image, profiles, path)
 
 def image_writer(image, profiles, path):
-    tifffile.imwrite(path + r'\Image_with_profiles.tif',
-                     np.asarray(profiles[...,0:3]).astype(np.uint16), photometric='rgb')
+    with TiffWriter(path + r'\Image_with_profiles.tif') as tif:
+        tif.save(np.asarray(profiles[...,0:3]).astype(np.uint16), photometric='rgb')
     image = image.astype(np.uint32)*10
     image += profiles
     image = np.clip(image, 0, 65535)
-    tifffile.imwrite(path + r'\Image_overlay.tif', image[...,0:3].astype(np.uint16), photometric='rgb')
+    with TiffWriter(path + r'\Image_overlay.tif') as tif:
+        tif.save(image[...,0:3].astype(np.uint16), photometric='rgb')

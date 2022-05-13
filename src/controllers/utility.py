@@ -268,12 +268,12 @@ def compute_line_orientation(image, blur, min_len=10, spline=3, expansion=1, exp
     image = cv2.blur(image, (blur, blur))
 
     # build threshold image
-    ret, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    thresh = cv2.bitwise_not(thresh)
+    ret, thresh = cv2.threshold(image, 0, 1,  cv2.THRESH_OTSU)
 
-    skeleton = skeletonize_3d((thresh / 255).astype(np.uint8)).astype(np.uint8)
 
-    cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\skel.tif", skeleton)
+    skeleton = skeletonize_3d(thresh.astype(np.uint8)).astype(np.uint8)
+
+    #cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\skel.tif", skeleton)
     # contour = self.collapse_contours(contours)
     # cv2.imshow("asdf", skeleton * 255)
     # cv2.waitKey(0)

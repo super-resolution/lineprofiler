@@ -145,11 +145,10 @@ class Fit:
         n_profiles: int
             Number of interpolated profiles. Is written as text in the plot.
         """
-        matplotlib.rc('font', **{'size' : 12},)
+        matplotlib.rc('font', **{'size' : 22},)
         matplotlib.rcParams['font.sans-serif'] = "Helvetica"
         x = np.linspace(0, data.shape[0]-1, data.shape[0])
         x_aligned = x-int(center)
-
 
         for name,func in fit_functions.items():
             fig = plt.figure()
@@ -170,7 +169,7 @@ class Fit:
             ax1.set_ylabel("normed intensity [a.u.]")
             ax1.set_xlabel("distance [nm]")
             fig.text(0.5, 0.01, txt, ha='center')
-            fig.set_size_inches(7, 12, forward=True)
+            fig.set_size_inches(8, 14, forward=True)
             if path is not None:
                 path_new = path+ r"\\"+name
                 if not os.path.exists(path_new):
