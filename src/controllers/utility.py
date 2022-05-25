@@ -17,7 +17,7 @@ from scipy import ndimage
 from controllers.fit_function_factory import fit_functions
 from scipy import optimize
 import matplotlib.pyplot as plt
-
+from src.controllers.Spliner import CustomSpline
 
 def get_center_of_mass_splines(image, blur=9):
     p_image = cv2.blur(image, (blur * 2, blur * 2))
@@ -197,6 +197,143 @@ def create_gradient_image(image, blur, sobel=9):
     return np.arctan2(X, Y)
 
 
+def binary_image_to_line_coordinates(thresh, min_len):
+    skeleton = skeletonize_3d(thresh.astype(np.uint8)).astype(np.uint8)
+
+    #cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\skel.tif", skeleton)
+    # contour = self.collapse_contours(contours)
+    # cv2.imshow("asdf", skeleton * 255)
+    # cv2.waitKey(0)
+
+    colormap = label(skeleton, connectivity=2)
+    lines = []
+    for i in range(colormap.max()):
+        j = i + 1
+        line = np.where(colormap == j)
+        if len(line[0]) > min_len:
+            lines.append(line)
+        else:
+            for k in range(line[1].shape[0]):
+                skeleton[line[0][k], line[1][k]] = 0
+    return lines
+
+
+def compute_spline(image, blur, min_len=10, spline=3, expansion=1, expansion2=1):
+    """
+    Compute the orientation and position of line resembling patterns in an image.
+
+    The image is convolved with a gaussian blur compensating for noise discontinuity or holes.
+    A thresholding algorithm (1) converts the image from grayscale to binary. Using Lees algorithm (2)
+    the expanded lines are reduced to one pixel width. The pixel coordinates from all still connected lines
+    are retrieved and tested for continuity. Points of discontinuity are used as breakpoints and all following
+    coordinates connected to a new line. Lines, shorter than the minimum required length are discarted.
+    An univariate spline of degree 3 is fitted to each line. Note that shape and gradient of the line depend on the
+    smoothing parameter. The rounded coordinates and their derivatives are returned in a table,
+    together with the length of each line.
+
+    Parameters
+    ----------
+    image: ndarray
+        Image containing line resembling patterns
+    blur: int
+        Amount of blur to apply to the image. Should be in the order of magnitude of the line width in pixel.
+    min_len: int
+        Minimal accepted line length
+    smooth: float
+        Positive smoothing factor used to choose the number of knots
+    spline: int
+        Degree of the smoothing spline. Must be <= 5. Default is 3, a cubic spline.
+
+    Returns
+    -------
+    gradient_fitted_table: ndarray
+        X, Y position of the splines. X, Y values of the spline gradient.
+    shapes: ndarray
+        Lengths of the lines written in gradient_fitted_table.
+
+    References
+    ----------
+    (1)  Nobuyuki Otsu: A threshold selection method from grey level histograms.
+    In: IEEE Transactions on Systems, Man, and Cybernetics. New York, 9.1979, S. 62–66. ISSN 1083-4419
+
+    (2)  T.-C. Lee, R.L. Kashyap and C.-N. Chu,
+    Building skeleton models via 3-D medial surface/axis thinning algorithms.
+    Computer Vision, Graphics, and Image Processing, 56(6):462-478, 1994.
+
+    Example
+    -------
+    >>> import matplotlib.pyplot as plt
+    >>> from src.controllers.utility import *
+    >>> import tifffile as tif
+    >>> import os
+    >>>
+    >>> with tif.TiffFile(os.path.dirname(os.getcwd()) + r"\test_data_microtub\Expansion dSTORM-Line Profile test.tif") as file:
+    >>>     image = file.asarray().astype(np.uint8)*40
+    >>>
+    >>> fig, axs = plt.subplots(2, 1, figsize=(9, 6), sharey=True)
+    >>> axs[0].imshow(image)
+    >>> axs[0].set_xlabel("test_image")
+    >>> axs[1].imshow(image)
+    >>> axs[1].set_xlabel("test_image with fitted splines")
+    >>> all_splines = compute_spline(image, 20)
+    >>> index = 0
+    >>> for spline in all_splines):
+    >>>     spline_positions = spline.sample(spline.n_points)
+    >>>     axs[1].plot(spline_positions[:,1],spline_positions[:,0], c="r")
+    >>>     index += shapes[i]
+    >>> plt.show()
+
+    .. figure:: fig/spline_fitting.png
+
+    """
+    image = cv2.blur(image, (blur, blur))
+
+    # build threshold image
+    ret, thresh = cv2.threshold(image, 0, 1,  cv2.THRESH_OTSU)
+
+    lines = binary_image_to_line_coordinates(thresh, min_len)
+
+    all_splines = []
+    #point_list = []
+    #point_fitted_list = []
+    #gradient_list = []
+    line_itterator = -1
+    line_length = len(lines)-1
+    while line_itterator < line_length:
+        line_itterator += 1
+        print(line_itterator)
+        points = np.array(lines[line_itterator]).T
+        if points.shape[0] < min_len:
+            continue
+        order = order_points_to_line(points)
+        if len(order)<points.shape[0]:
+            lines.append(points[len(order)+1:].T)
+            line_length += 1
+        points = points[order]
+        #distance from one points to the next
+        distance = np.cumsum(np.sqrt(np.sum(np.diff(points, axis=0) ** 2, axis=1)))
+
+        direction_change = 9999999
+        for i in range(distance.shape[0]):
+            if i + 30 < distance.shape[0]:
+                vec1 = points[i + 15] - points[i]
+                vec2 = points[i + 30] - points[i + 15]
+                direction = np.dot(vec1, vec2)
+                if direction < 90:
+                    direction_change = i +1
+            if distance[i] - distance[i - 1] > 10 or i > direction_change:
+                lines.append(points[i + 2:].T)
+                points = points[:i + 1]
+                line_length += 1
+                break
+        if points.shape[0] < min_len:
+            continue
+
+        c_spline = CustomSpline(points, order=spline, smoothing=expansion)
+        all_splines.append(c_spline)
+    return all_splines
+
+
 def compute_line_orientation(image, blur, min_len=10, spline=3, expansion=1, expansion2=1):
     """
     Compute the orientation and position of line resembling patterns in an image.
@@ -270,24 +407,8 @@ def compute_line_orientation(image, blur, min_len=10, spline=3, expansion=1, exp
     # build threshold image
     ret, thresh = cv2.threshold(image, 0, 1,  cv2.THRESH_OTSU)
 
+    lines = binary_image_to_line_coordinates(thresh, min_len)
 
-    skeleton = skeletonize_3d(thresh.astype(np.uint8)).astype(np.uint8)
-
-    #cv2.imwrite(r"C:\Users\biophys\Documents\Klosters\skel.tif", skeleton)
-    # contour = self.collapse_contours(contours)
-    # cv2.imshow("asdf", skeleton * 255)
-    # cv2.waitKey(0)
-
-    colormap = label(skeleton, connectivity=2)
-    lines = []
-    for i in range(colormap.max()):
-        j = i + 1
-        line = np.where(colormap == j)
-        if len(line[0]) > min_len:
-            lines.append(line)
-        else:
-            for k in range(line[1].shape[0]):
-                skeleton[line[0][k], line[1][k]] = 0
     point_list = []
     point_fitted_list = []
     gradient_list = []
@@ -337,9 +458,9 @@ def compute_line_orientation(image, blur, min_len=10, spline=3, expansion=1, exp
         #append fitted points to
         point_fitted_list.append(points_fitted)
         gradient_list.append(np.vstack(spl(alpha) for spl in dsplines).T)
-
+        #todo: replace with spline object
         #plot results for testing purposes
-    #sort results to array
+    # sort results to array
     result_table = []
     shapes = []
     for i in range(len(point_fitted_list)):
@@ -348,7 +469,7 @@ def compute_line_orientation(image, blur, min_len=10, spline=3, expansion=1, exp
             result_table.append([int(point_fitted_list[i][j][0]), int(point_fitted_list[i][j][1]),
                                  gradient_list[i][j][0], gradient_list[i][j][1],int(point_list[i][j][0]), int(point_list[i][j][1])], )
     gradient_fitted_table = np.array(result_table)
-
+    #todo: refractor gradient table...
     return gradient_fitted_table, shapes
 
 
@@ -436,6 +557,9 @@ def get_candidates_accelerated(maximum, dis_transform, image_canny, canny_candid
                     for l in range(sub_array.shape[1]):
                         if dis_sub[k, l] == min_value:
                             canny_candidates[i - maximum + k, j - maximum+l] = 1
+
+def line_profile_n(image, line):
+    return ndimage.map_coordinates(image, np.vstack((line.x, line.y)))
 
 def line_profile(image, start, end, px_size=0.032, sampling=1):
     num = int(np.round(np.linalg.norm(np.array(start) - np.array(end)) * px_size * 100 * sampling))

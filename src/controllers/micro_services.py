@@ -106,6 +106,28 @@ def profile_painter(image, path):
             profiles[line['X'].astype(np.int32), line['Y'].astype(np.int32)] = np.array(color) * 50000
     image_writer(image, profiles, path)
 
+@coroutine
+def profile_painter_2(image, path):
+    image = image.astype(np.uint16)
+    if len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGBA)
+    if len(image.shape) !=3:
+        raise ValueError(f"Image should be RGBA found {image.shape}")
+    profiles = np.zeros_like(image).astype(np.uint16)
+    while True:
+        data = yield
+        if data is None:
+            break
+        if isinstance(data, abc.Sequence):
+            line,color = data
+        else:
+            line = data
+            color = (1.0,0.0,0.0,1.0)
+        if line.x.min() >= 0 and line.y.min() >= 0 and line.x.max() < image.shape[0] and line.y.max() < image.shape[1]:
+            profiles[line.x.astype(np.int32), line.y.astype(np.int32)] = np.array(color) * 50000
+    image_writer(image, profiles, path)
+
+
 def image_writer(image, profiles, path):
     with TiffWriter(path + r'\Image_with_profiles.tif') as tif:
         tif.save(np.asarray(profiles[...,0:3]).astype(np.uint16), photometric='rgb')

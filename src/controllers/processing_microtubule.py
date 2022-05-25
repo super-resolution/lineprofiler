@@ -1,7 +1,7 @@
-from controllers.utility import compute_line_orientation, line_parameters, line_profile
+from controllers.utility import compute_spline, line_parameters, line_profile, line_profile_n
 import numpy as np
 from controllers.processing_template import QSuperThread
-from controllers.micro_services import profile_painter, profile_collector, mic_project_generator
+from controllers.micro_services import profile_painter_2, profile_collector, mic_project_generator
 
 
 class QProcessThread(QSuperThread):
@@ -22,11 +22,14 @@ class QProcessThread(QSuperThread):
             Current slice of image stack
 
         """
-        self.current_image = self.image_stack[0,slice].astype(np.uint16)
+        if len(self.image_stack.shape) == 2:
+            self.current_image = self.image_stack
+        else:
+            self.current_image = self.image_stack[0,slice].astype(np.uint16)
 
-        processing_image = np.clip(self.image_stack[0,slice]/self.intensity_threshold, 0, 255).astype(np.uint8)
+        processing_image = np.clip(self.current_image/self.intensity_threshold, 0, 255).astype(np.uint8)
         # Spline fit skeletonized image
-        self.gradient_table, self.shapes = compute_line_orientation(
+        self.splines = compute_spline(
             processing_image, self.blur, expansion=self.spline_parameter, expansion2=self.spline_parameter)
 
 
@@ -38,35 +41,31 @@ class QProcessThread(QSuperThread):
         if not isinstance(self.data_z, np.ndarray):
             self.z_project_collection = False
         profiles = []
-        result = []
         counter = -1
-        count = self.gradient_table.shape[0]
+        count = 0
+        for spl in self.splines:
+            count += spl.n_points
         current_profile_width = int(2*self.profil_width/3*self.px_size*1000)
         if current_profile_width % 2 != 0:
             current_profile_width += 1
-        painter = profile_painter(self.current_image/self.intensity_threshold, self.path)
-        for i in range(len(self.shapes)):
-            color = self.colormap(i/len(self.shapes))
+        painter = profile_painter_2(self.current_image/self.intensity_threshold, self.path)
+        for i,spline in enumerate(self.splines):
+            color = self.colormap(i/len(self.splines))
             collector = profile_collector(self.path, i)
             mic_generator = mic_project_generator(self.path, i)
-            for j in range(self.shapes[i]):
+
+            line_profiles = spline.profiles(spline.n_points, self.profil_width, self.px_size, self.sampling)
+            for line in line_profiles:
                 counter+=1
                 self.sig.emit(int((counter) / count* 100))
 
 
-                source_point = self.gradient_table[counter,0:2]
-                gradient = self.gradient_table[counter,2:4]
-                gradient = np.arctan(gradient[1]/gradient[0])+np.pi/2
-
-                line = line_parameters(source_point, gradient, self.profil_width)
-
                 if self.z_project_collection:
                     for z in range(self.data_z.shape[0]):
-                        z_profile = line_profile(self.data_z[z], line['start'], line['end'], px_size=self.px_size,
-                                               sampling=1)
+                        z_profile = line_profile_n(self.data_z[z], line)
                         mic_generator.send((z_profile, z))
 
-                profile = line_profile(self.current_image, line['start'], line['end'], px_size=self.px_size, sampling=self.sampling)
+                profile = line_profile_n(self.current_image, line)
                 profile = profile[int(profile.shape[0]/2-current_profile_width/2):int(profile.shape[0]/2+current_profile_width/2)]
 
                 if profile.shape[0]< int(current_profile_width):

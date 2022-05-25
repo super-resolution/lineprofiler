@@ -23,7 +23,8 @@ class QSuperThread(QThread):
         self._spline_parameter = 1.0
         self.image_stack = None
         self._data_z = None
-        self._profil_width = 0
+        self._profil_width = 40
+        self._px_size = 0.032
 
 
     def set_data(self,ID, image_stack, f_name):
