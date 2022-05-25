@@ -1,4 +1,4 @@
-from viewer.random import Ui_MainWindow
+from viewer.user_interface import Ui_MainWindow
 from PyQt5 import QtWidgets,QtGui, QtCore
 from PyQt5.QtCore import QThread,pyqtSignal
 from PyQt5.QtWidgets import QListWidgetItem
